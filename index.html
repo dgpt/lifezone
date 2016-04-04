@@ -2,7 +2,18 @@
 <html>
   <head>
     <meta charset="UTF-8">
+    <script src="lode.js"></script>
     <script src="main.js"></script>
   </head>
-  <body onLoad="onBodyLoad()"></body>
+  <style>
+    canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: optimize-contrast;
+      -ms-interpolation-mode: nearest-neighbor;
+    }
+  </style>
+  <body onLoad="onBodyLoad()">
+    <canvas id="gameCanvas" width="512" height="512"></canvas>
+  </body>
 </html>
