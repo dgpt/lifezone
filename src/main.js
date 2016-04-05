@@ -105,7 +105,7 @@ var TestWorld = (function() {
     T.prototype = Object.create(World.prototype);
 
     T.prototype.init = function() {
-        this.stringCanvas = this.game.fontRenderer.createStaticString('H.ELLO, WORLD');
+        this.stringCanvas = this.game.fontRenderer.createStaticString('Hello world!');
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
     };
 
