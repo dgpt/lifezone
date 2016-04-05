@@ -106,6 +106,7 @@ var TestWorld = (function() {
 
     T.prototype.init = function() {
         this.stringCanvas = this.game.fontRenderer.createStaticString('Hello world!');
+        this.developString = this.game.fontRenderer.createStaticString('Develop');
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
     };
 
@@ -114,7 +115,14 @@ var TestWorld = (function() {
         renderer.gc.fillStyle = '#1B3A50';
         renderer.fillRect(0,0,renderer.RESOLUTION,renderer.RESOLUTION);
 
-        renderer.drawImage(this.stringCanvas, 5, 5);
+        renderer.drawImage(this.stringCanvas, 0, 0);
+
+        renderer.gc.fillStyle = '#AAAAAA';
+        renderer.fillRect(0,renderer.RESOLUTION*0.75,renderer.RESOLUTION,renderer.RESOLUTION*0.25);
+
+        var pos = renderer.pixelCoordToScreen(renderer.RESOLUTION*0.5, renderer.RESOLUTION*0.75);
+        var dimension = renderer.pixelCoordToScreen(this.developString.width, this.developString.height);
+        renderer.drawImage(this.developString, pos.x - dimension.x/2, pos.y + dimension.y/2);
 
         var ship = this.game.assets.ship;
         var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);

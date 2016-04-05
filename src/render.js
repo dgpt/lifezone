@@ -95,6 +95,7 @@ var BitmapFontRenderer = (function() {
     function F(fontImg, fontInfo) {
         fontInfo = JSON.parse(fontInfo).font;
         this.lineHeight = fontInfo.common.lineHeight;
+        this.baseline = fontInfo.common.base;
 
         function toInt(str) {
             return parseInt(str, 10);
@@ -109,15 +110,47 @@ var BitmapFontRenderer = (function() {
         }
     }
 
-    F.prototype.createStaticString = function(string) {
-        var canvas = document.createElement('canvas');
-        var gc = canvas.getContext('2d');
-        var cumulativeWidth = 0;
+    F.prototype.getStringWidth = function(string) {
+        var width = 0;
         for (var i=0; i<string.length; ++i) {
             var charCode = string.charCodeAt(i);
             var glyph = this.glyphs[charCode];
             if (glyph !== undefined) {
-                gc.drawImage(glyph.canvasSlice, cumulativeWidth, glyph.yoffset);
+                width += glyph.xadvance;
+            }
+        }
+        return width;
+    };
+
+    F.prototype.createStaticString = function(string, opt) {
+        var canvas = document.createElement('canvas');
+        var gc = canvas.getContext('2d');
+        var cumulativeWidth = 0;
+        canvas.width = this.getStringWidth(string);
+        canvas.height = this.lineHeight;
+
+        if (opt === undefined) {
+            opt = {
+                baseline: 'top'
+            };
+        }
+
+        var baselineShift = 0;
+        if (opt.baseline) {
+            if (opt.baseline === 'middle') {
+                baselineShift = -(this.lineHeight - this.baseline)/2;
+            } else if (opt.baseline === 'top') {
+                baselineShift = -(this.lineHeight - this.baseline);
+            } else if (opt.baseline === 'bottom') {
+                baselineShift = 0;
+            }
+        }
+
+        for (var i=0; i<string.length; ++i) {
+            var charCode = string.charCodeAt(i);
+            var glyph = this.glyphs[charCode];
+            if (glyph !== undefined) {
+                gc.drawImage(glyph.canvasSlice, cumulativeWidth, glyph.yoffset + baselineShift);
                 cumulativeWidth += glyph.xadvance;
             }
         }
