@@ -9,52 +9,126 @@ var requestAnimationFrame = window.requestAnimationFrame
                        || function(func) { setTimeout(func, 1000/60) };
 
 window.onBodyLoad = () => {
-    var loader = LODE.createLoader();
-    ship = loader.loadImage('ship.png');
-    font = loader.loadImage('font.png');
-    fontInfo = loader.loadFile('font.json');
+    var game = new Game();
+    game.setWorld(new TestWorld(game));
+    game.init();
+}
 
-    loader.load({
-        onLoadComplete: function() {
-            onResourcesLoad();
+var Game = (function() {
+    function G() {
+        this.world = null;
+    }
+
+    G.prototype.init = function() {
+        this.assets = new GameAssets();
+        this.assets.load(this.onAssetsLoaded.bind(this));
+    };
+
+    G.prototype.onAssetsLoaded = function() {
+        console.log("Assets loaded");
+
+        this.fontRenderer = new BitmapFontRenderer(this.assets.font, this.assets.fontInfo.data);
+
+        this.renderer = new PixelRenderer();
+        this.renderer.init(document.getElementById('gameCanvas'));
+
+        if (this.world) {
+            this.world.onInit();
         }
-    });
-}
 
-function onResourcesLoad() {
-    fontRenderer = new BitmapFontRenderer(font, fontInfo.data);
+        this.onUpdate();
+    };
 
-    renderer = new PixelRenderer();
-    renderer.init(document.getElementById('gameCanvas'));
-    renderer.canvas.addEventListener('mousemove', onMouseMove);
+    G.prototype.onUpdate = function() {
+        if (this.world) {
+            this.world.onUpdate();
+        }
 
-    stringCanvas = fontRenderer.createStaticString('H.ELLO, WORLD');
+        this.renderer.clear();
+        if (this.world) {
+            this.world.onRender();
+        }
 
-    requestAnimationFrame(onUpdate);
-}
+        var self = this;
+        requestAnimationFrame(function() { self.onUpdate() });
+    };
 
-function onMouseMove(e) {
-    shipX = e.layerX;
-    shipY = e.layerY;
-}
+    G.prototype.setWorld = function(world) {
+        this.world = world;
+    };
 
-function onUpdate() {
-    renderer.clear();
+    return G;
+})();
 
-    renderer.gc.fillStyle = '#FF0000';
-    renderer.drawPixel(0,0);
-    renderer.gc.fillStyle = '#00FF00';
-    renderer.drawPixel(1,0);
-    renderer.drawPixel(63,63);
+var GameAssets = (function() {
+    function A() {
+        this.loader = LODE.createLoader();
+        this.ship = this.loader.loadImage('assets/ship.png');
+        this.font = this.loader.loadImage('assets/font.png');
+        this.fontInfo = this.loader.loadFile('assets/font.json');
+    };
+    A.prototype.load = function(onAssetsLoaded) {
+        this.loader.load({
+            onLoadComplete: onAssetsLoaded
+        });
+    };
+    return A;
+})();
 
-    renderer.drawText('debug text', 0, 0);
-    renderer.drawImage(stringCanvas, 0, 0);
+var World = (function() {
+    function W(game) {
+        this.game = game;
+    }
 
-    var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
-    renderer.drawImage(ship, shipX - shipOffset.x, shipY - shipOffset.y);
+    W.prototype.onInit = function() {
+        if (this.init) this.init();
+    };
 
-    requestAnimationFrame(onUpdate);
-}
+    W.prototype.onUpdate = function() {
+        if (this.update) this.update();
+    };
+
+    W.prototype.onRender = function() {
+        if (this.render) this.render();
+    };
+
+    return W;
+})();
+
+var TestWorld = (function() {
+    function T(game) {
+        World.call(this, game);
+    }
+    T.prototype = Object.create(World.prototype);
+
+    T.prototype.init = function() {
+        this.stringCanvas = this.game.fontRenderer.createStaticString('H.ELLO, WORLD');
+        this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+    };
+
+    T.prototype.render = function() {
+        var renderer = this.game.renderer;
+        renderer.gc.fillStyle = '#FF0000';
+        renderer.drawPixel(0,0);
+        renderer.gc.fillStyle = '#00FF00';
+        renderer.drawPixel(1,0);
+        renderer.drawPixel(63,63);
+
+        renderer.drawText('debug text', 0, 0);
+        renderer.drawImage(this.stringCanvas, 0, 0);
+
+        var ship = this.game.assets.ship;
+        var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
+        renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
+    };
+
+    T.prototype.onMouseMove = function(e) {
+        this.shipX = e.layerX;
+        this.shipY = e.layerY;
+    };
+
+    return T;
+})();
 
 var PixelRenderer = (function() {
     function R() {}
