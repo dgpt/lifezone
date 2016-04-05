@@ -1,5 +1,5 @@
 const { LODE } = require('../lib/lode');
-var ship, renderer, shipX, shipY;
+var ship, font, fontInfo, fontRenderer, stringCanvas, renderer, shipX, shipY;
 
 // Override default requestAnimationFrame for maximum compatibility.
 var requestAnimationFrame = window.requestAnimationFrame
@@ -11,6 +11,9 @@ var requestAnimationFrame = window.requestAnimationFrame
 window.onBodyLoad = () => {
     var loader = LODE.createLoader();
     ship = loader.loadImage('ship.png');
+    font = loader.loadImage('font.png');
+    fontInfo = loader.loadFile('font.json');
+
     loader.load({
         onLoadComplete: function() {
             onResourcesLoad();
@@ -19,9 +22,13 @@ window.onBodyLoad = () => {
 }
 
 function onResourcesLoad() {
+    fontRenderer = new BitmapFontRenderer(font, fontInfo.data);
+
     renderer = new PixelRenderer();
     renderer.init(document.getElementById('gameCanvas'));
     renderer.canvas.addEventListener('mousemove', onMouseMove);
+
+    stringCanvas = fontRenderer.createStaticString('H.ELLO, WORLD');
 
     requestAnimationFrame(onUpdate);
 }
@@ -41,6 +48,7 @@ function onUpdate() {
     renderer.drawPixel(63,63);
 
     renderer.drawText('debug text', 0, 0);
+    renderer.drawImage(stringCanvas, 0, 0);
 
     var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
     renderer.drawImage(ship, shipX - shipOffset.x, shipY - shipOffset.y);
@@ -110,4 +118,73 @@ var PixelRenderer = (function() {
     }
 
     return R;
+})();
+
+var Glyph = (function() {
+    function G(fontImg, character, x, y, w, h, orientation) {
+        this.fontImg = fontImg;
+        this.character = character.toString();
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.orientation = orientation
+
+        this.canvasSlice = document.createElement('canvas');
+        this.canvasSlice.width = w;
+        this.canvasSlice.height = h;
+        this.canvasSlice.id = this.character;
+        var gc = this.canvasSlice.getContext('2d');
+        gc.drawImage(this.fontImg, x, this.fontImg.height - h - y, w, h, 0, 0, w, h);
+    }
+
+    return G;
+})();
+
+var BitmapFontRenderer = (function() {
+    function F(fontImg, fontInfo) {
+        fontInfo = JSON.parse(fontInfo);
+        this.spaceSize = fontInfo.spaceSize;
+        this.paddingSize = fontInfo.paddingSize;
+        this.glyphHeight = fontInfo.glyphHeight;
+
+        // Create glyph map
+        this.glyphs = {};
+        for (var i=0; i<fontInfo.glyphs.length; ++i) {
+            var glyphInfo = fontInfo.glyphs[i];
+            var orientation = glyphInfo.orientation;
+            if (orientation === undefined) {
+                orientation = 'top';
+            }
+            var glyph = new Glyph(fontImg, glyphInfo.name, glyphInfo.rect.x, glyphInfo.rect.y, glyphInfo.rect.width, glyphInfo.rect.height, orientation);
+            this.glyphs[glyph.character] = glyph;
+        }
+    }
+
+    F.prototype.createStaticString = function(string) {
+        var canvas = document.createElement('canvas');
+        var gc = canvas.getContext('2d');
+        var cumulativeWidth = 0;
+        for (var i=0; i<string.length; ++i) {
+            var character = string[i];
+            var glyph = this.glyphs[character];
+            if (glyph === undefined) {
+                if (character === ' ') {
+                    cumulativeWidth += this.spaceSize;
+                } else {
+                    cumulativeWidth += this.paddingSize;
+                }
+            } else {
+                var height = 0;
+                if (glyph.orientation === 'bottom') {
+                    height = this.glyphHeight - glyph.height;
+                }
+                gc.drawImage(glyph.canvasSlice, cumulativeWidth, height);
+                cumulativeWidth += glyph.width + this.paddingSize;
+            }
+        }
+        return canvas;
+    }
+
+    return F;
 })();
