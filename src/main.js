@@ -20,6 +20,7 @@ var Game = (function() {
     }
 
     G.prototype.init = function() {
+        this.time = new TimeManager();
         this.assets = new GameAssets();
         this.assets.load(this.onAssetsLoaded.bind(this));
     };
@@ -48,6 +49,8 @@ var Game = (function() {
         if (this.world) {
             this.world.onRender();
         }
+
+        this.time.updateTime();
 
         var self = this;
         requestAnimationFrame(function() { self.onUpdate() });
