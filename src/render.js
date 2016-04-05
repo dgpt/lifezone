@@ -19,6 +19,12 @@ var PixelRenderer = (function() {
         this.gc.fillRect(xi * p, yi * p, p, p);
     }
 
+    // Draws rectangle from pixel to screen coordinates
+    R.prototype.fillRect = function(px, py, pw, ph) {
+        var p = this.pixelSize;
+        this.gc.fillRect(px * p, py * p, pw * p, ph * p);
+    };
+
     // Draws an image
     // x, y = screen coordinates
     R.prototype.drawImage = function(img, x, y) {
@@ -27,7 +33,7 @@ var PixelRenderer = (function() {
         this.gc.drawImage(img, pos.x * p, pos.y * p, img.width * p, img.height * p);
     }
 
-    // Draws not pixel text, for debugging purposes
+    // Draws non pixel text, for debugging purposes
     // x, y = screen coordinates
     R.prototype.drawText = function(text, x, y, size) {
         this.gc.save();

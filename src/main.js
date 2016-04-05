@@ -111,14 +111,10 @@ var TestWorld = (function() {
 
     T.prototype.render = function() {
         var renderer = this.game.renderer;
-        renderer.gc.fillStyle = '#FF0000';
-        renderer.drawPixel(0,0);
-        renderer.gc.fillStyle = '#00FF00';
-        renderer.drawPixel(1,0);
-        renderer.drawPixel(63,63);
+        renderer.gc.fillStyle = '#1B3A50';
+        renderer.fillRect(0,0,renderer.RESOLUTION,renderer.RESOLUTION);
 
-        renderer.drawText('debug text', 0, 0);
-        renderer.drawImage(this.stringCanvas, 0, 0);
+        renderer.drawImage(this.stringCanvas, 5, 5);
 
         var ship = this.game.assets.ship;
         var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
