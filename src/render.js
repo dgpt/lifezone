@@ -11,13 +11,13 @@ var PixelRenderer = (function() {
         this.gc.mozImageSmoothingEnabled = false;
         this.gc.msImageSmoothingEnabled = false;
         this.gc.imageSmoothingEnabled = false;
-    }
+    };
 
     // xi, yi = pixel position index
     R.prototype.drawPixel = function(xi, yi) {
         var p = this.pixelSize;
         this.gc.fillRect(xi * p, yi * p, p, p);
-    }
+    };
 
     // Draws rectangle from pixel to screen coordinates
     R.prototype.fillRect = function(px, py, pw, ph) {
@@ -31,7 +31,7 @@ var PixelRenderer = (function() {
         var p = this.pixelSize;
         var pos = this.screenCoordToPixel(x, y);
         this.gc.drawImage(img, pos.x * p, pos.y * p, img.width * p, img.height * p);
-    }
+    };
 
     // Draws non pixel text, for debugging purposes
     // x, y = screen coordinates
@@ -45,25 +45,37 @@ var PixelRenderer = (function() {
         this.gc.fillText(text, x, y);
         this.gc.strokeText(text, x, y);
         this.gc.restore();
-    }
+    };
 
     // Converts a screen position into pixel indices
     R.prototype.screenCoordToPixel = function(x, y) {
         x = Math.round(x / this.pixelSize);
         y = Math.round(y / this.pixelSize);
         return {x:x, y:y};
-    }
+    };
 
     // Converts pixel indices into screen position
     R.prototype.pixelCoordToScreen = function(x, y) {
         x = x * this.pixelSize;
         y = y * this.pixelSize;
         return {x:x, y:y};
-    }
+    };
+
+    // Converts a ratio of the screen into a pixel-safe screen coordinate
+    R.prototype.ratioToScreenCoord = function(x, y) {
+        return this.roundScreenCoord(x * this.canvas.width, y * this.canvas.height);
+    };
+
+    // Convert screen coordinate into a pixel-safe screen coordinate
+    R.prototype.roundScreenCoord = function(x, y) {
+        x = Math.round(x / this.pixelSize) * this.pixelSize;
+        y = Math.round(y / this.pixelSize) * this.pixelSize;
+        return {x:x, y:y};
+    };
 
     R.prototype.clear = function() {
         this.gc.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    }
+    };
 
     return R;
 })();

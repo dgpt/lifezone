@@ -82,6 +82,109 @@ var GameAssets = (function() {
     return A;
 })();
 
+var Button = (function() {
+    function B(game, x, y, width, height, opt) {
+        this.game = game;
+
+        opt = _.extend({
+            text: '',
+            halign: 'center',
+            valign: 'center'
+        }, opt);
+
+        var dimension = this.game.renderer.ratioToScreenCoord(width, height);
+        this.width = dimension.x;
+        this.height = dimension.y;
+
+        var pos = this.game.renderer.ratioToScreenCoord(x, y);
+
+        if (opt.halign === 'center') {
+            this.x = pos.x - this.width/2;
+        } else if (opt.halign === 'left') {
+            this.x = pos.x;
+        }
+
+        if (opt.valign === 'center') {
+            this.y = pos.y - this.height/2;
+        } else if (opt.valign === 'top') {
+            this.y = pos.y;
+        } else if (opt.valign === 'bottom') {
+            this.y = pos.y - this.height;
+        }
+
+        this.status = 'up';
+
+        if (opt.text.length > 0) {
+            this.textCanvas = this.game.fontRenderer.createStaticString(opt.text);
+        }
+    }
+
+    B.prototype.onUpdate = function() {
+        var input = this.game.input;
+        var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
+
+        if (isHovering) {
+            if (input.mouse.isPressed(input.MOUSE_LEFT)) {
+                this.status = 'down';
+            }
+
+            if (this.status === 'upactive') {
+                this.status = 'down';
+            }
+
+            if (this.status !== 'down') {
+                this.status = 'hover';
+            }
+        } else {
+            if (this.status === 'down' || this.status === 'upactive') {
+                this.status = 'upactive';
+            } else {
+                this.status = 'up';
+            }
+        }
+
+        this.handleMouseRelease();
+    };
+
+    // Handles the actions that occur when you release the mouse button.
+    B.prototype.handleMouseRelease = function() {
+        var input = this.game.input;
+        if (input.mouse.isReleased(input.MOUSE_LEFT)) {
+            var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
+            if (this.status === 'down') {
+                if (this.onClick) {
+                    this.onClick();
+                }
+            }
+            this.status = isHovering ? 'hover' : 'up';
+        }
+    };
+
+    B.prototype.onRender = function() {
+        var renderer = this.game.renderer;
+        switch(this.status) {
+            case 'up':
+            case 'upactive':
+                renderer.gc.fillStyle = '#AAAAAA';
+                break;
+            case 'down':
+                renderer.gc.fillStyle = '#505050';
+                break;
+            case 'hover':
+                renderer.gc.fillStyle = '#BBBBBB';
+                break;
+
+        }
+        renderer.gc.fillRect(this.x, this.y, this.width, this.height);
+        if (this.textCanvas !== undefined) {
+            var textDimension = renderer.pixelCoordToScreen(this.textCanvas.width, this.textCanvas.height);
+            renderer.drawImage(this.textCanvas, this.x + this.width/2 - textDimension.x/2, this.y + this.height/2 - textDimension.y/2);
+        }
+    };
+
+    return B;
+})();
+
 var World = (function() {
     function W(game) {
         this.game = game;
@@ -110,8 +213,21 @@ var TestWorld = (function() {
 
     T.prototype.init = function() {
         this.stringCanvas = this.game.fontRenderer.createStaticString('Hello world!');
-        this.developString = this.game.fontRenderer.createStaticString('Develop');
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
+
+        this.buttonCounter = 0;
+        this.button = new Button(this.game, 0.5, 1.0, 1, 0.25, {
+            text: 'Develop',
+            valign: 'bottom'
+        });
+        this.button.onClick = (function() {
+            this.buttonCounter++;
+            this.stringCanvas = this.game.fontRenderer.createStaticString(this.buttonCounter.toString());
+        }).bind(this);
+    };
+
+    T.prototype.update = function() {
+        this.button.onUpdate();
     };
 
     T.prototype.render = function() {
@@ -121,12 +237,7 @@ var TestWorld = (function() {
 
         renderer.drawImage(this.stringCanvas, 0, 0);
 
-        renderer.gc.fillStyle = '#AAAAAA';
-        renderer.fillRect(0,renderer.RESOLUTION*0.75,renderer.RESOLUTION,renderer.RESOLUTION*0.25);
-
-        var pos = renderer.pixelCoordToScreen(renderer.RESOLUTION*0.5, renderer.RESOLUTION*0.75);
-        var dimension = renderer.pixelCoordToScreen(this.developString.width, this.developString.height);
-        renderer.drawImage(this.developString, pos.x - dimension.x/2, pos.y + dimension.y/2);
+        this.button.onRender();
 
         if (this.game.input.mouse.isDown(this.game.input.MOUSE_LEFT)) {
             var ship = this.game.assets.ship;
