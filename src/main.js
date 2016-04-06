@@ -224,10 +224,37 @@ var TestWorld = (function() {
             this.buttonCounter++;
             this.stringCanvas = this.game.fontRenderer.createStaticString(this.buttonCounter.toString());
         }).bind(this);
+
+        this.camX = 0;
+        this.camY = 0;
+        this.mouseClickPos = null;
+        this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
     };
 
     T.prototype.update = function() {
         this.button.onUpdate();
+
+        var input = this.game.input;
+        if (input.mouse.isPressed(input.MOUSE_LEFT)) {
+            this.mouseClickPos = {x:input.mouse.getX(), y:input.mouse.getY()};
+        }
+        if (this.mouseClickPos !== null) {
+            if (input.mouse.isMoving()) {
+                var x = this.mouseClickPos.x - input.mouse.getX();
+                var y = this.mouseClickPos.y - input.mouse.getY();
+                this.camX += Math.round(x/8);
+                this.camY += Math.round(y/8);
+                if (this.camX < this.cameraBounds.x1) this.camX = this.cameraBounds.x1;
+                if (this.camX > this.cameraBounds.x2) this.camX = this.cameraBounds.x2;
+                if (this.camY < this.cameraBounds.y1) this.camY = this.cameraBounds.y1;
+                if (this.camY > this.cameraBounds.y2) this.camY = this.cameraBounds.y2;
+                this.mouseClickPos = {x:input.mouse.getX(), y:input.mouse.getY()};
+            }
+
+            if (input.mouse.isReleased(input.MOUSE_LEFT)) {
+                this.mouseClickPos = null;
+            }
+        }
     };
 
     T.prototype.render = function() {
@@ -235,15 +262,22 @@ var TestWorld = (function() {
         renderer.gc.fillStyle = '#1B3A50';
         renderer.fillRect(0,0,renderer.RESOLUTION,renderer.RESOLUTION);
 
+        renderer.gc.fillStyle = '#FF0000';
+        renderer.fillRect(5-this.camX, 5-this.camY,32,16);
+
+        renderer.gc.fillStyle = '#00FF00';
+        renderer.fillRect(32-this.camX, 32-this.camY,32,8);
+
+        renderer.gc.fillStyle = '#0000FF';
+        renderer.fillRect(70-this.camX, 5-this.camY,32,8);
+
         renderer.drawImage(this.stringCanvas, 0, 0);
 
         this.button.onRender();
 
-        if (this.game.input.mouse.isDown(this.game.input.MOUSE_LEFT)) {
-            var ship = this.game.assets.ship;
-            var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
-            renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
-        }
+        var ship = this.game.assets.ship;
+        var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
+        renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
     };
 
     T.prototype.onMouseMove = function(e) {
