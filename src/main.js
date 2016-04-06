@@ -21,6 +21,7 @@ var Game = (function() {
 
     G.prototype.init = function() {
         this.time = new TimeManager();
+        this.input = new InputManager();
         this.assets = new GameAssets();
         this.assets.load(this.onAssetsLoaded.bind(this));
     };
@@ -32,6 +33,8 @@ var Game = (function() {
 
         this.renderer = new PixelRenderer();
         this.renderer.init(document.getElementById('gameCanvas'));
+
+        this.input.init(this.renderer.canvas);
 
         if (this.world) {
             this.world.onInit();
@@ -50,6 +53,7 @@ var Game = (function() {
             this.world.onRender();
         }
 
+        this.input.update();
         this.time.updateTime();
 
         var self = this;
@@ -124,9 +128,11 @@ var TestWorld = (function() {
         var dimension = renderer.pixelCoordToScreen(this.developString.width, this.developString.height);
         renderer.drawImage(this.developString, pos.x - dimension.x/2, pos.y + dimension.y/2);
 
-        var ship = this.game.assets.ship;
-        var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
-        renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
+        if (this.game.input.mouse.isDown(this.game.input.MOUSE_LEFT)) {
+            var ship = this.game.assets.ship;
+            var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
+            renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
+        }
     };
 
     T.prototype.onMouseMove = function(e) {
