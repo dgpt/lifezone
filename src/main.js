@@ -83,13 +83,16 @@ var Game = (function() {
         console.log(this.activeUiElements);
     };
 
-    // Returns the first item in the active ui array
+    // Returns the first item in the active ui array that has the smallest layer value
     G.prototype.getActiveUi = function() {
-        if (this.activeUiElements.length > 0) {
-            return this.activeUiElements[0];
-        } else {
-            return null;
+        var smallestElement = null;
+        for (var i=0; i<this.activeUiElements.length; ++i) {
+            var element = this.activeUiElements[i];
+            if (smallestElement === null || element.opt.layer < smallestElement.opt.layer) {
+                smallestElement = element;
+            }
         }
+        return smallestElement;
     };
 
     return G;
@@ -110,88 +113,133 @@ var GameAssets = (function() {
     return A;
 })();
 
-var Button = (function() {
-    function B(game, x, y, width, height, opt) {
+var UiElement = (function() {
+    function U(game, x, y, width, height, opt) {
         this.game = game;
+        this.uiActive = false;
 
-        opt = _.extend({
+        this.opt = _.extend({
             text: '',
             halign: 'center',
-            valign: 'center'
+            valign: 'center',
+            layer: 0
         }, opt);
 
-        var dimension = this.game.renderer.ratioToScreenCoord(width, height);
-        this.width = dimension.x;
-        this.height = dimension.y;
+        this.setDimensions(width, height);
+        this.setPos(x, y);
+    }
 
+    // Set position as ratio
+    U.prototype.setPos = function(x, y) {
         var pos = this.game.renderer.ratioToScreenCoord(x, y);
-
-        if (opt.halign === 'center') {
+        if (this.opt.halign === 'center') {
             this.x = pos.x - this.width/2;
-        } else if (opt.halign === 'left') {
+        } else if (this.opt.halign === 'left') {
             this.x = pos.x;
-        } else if (opt.halign === 'right') {
+        } else if (this.opt.halign === 'right') {
             this.x = pos.x - this.width;
         }
 
-        if (opt.valign === 'center') {
+        if (this.opt.valign === 'center') {
             this.y = pos.y - this.height/2;
-        } else if (opt.valign === 'top') {
+        } else if (this.opt.valign === 'top') {
             this.y = pos.y;
-        } else if (opt.valign === 'bottom') {
+        } else if (this.opt.valign === 'bottom') {
             this.y = pos.y - this.height;
         }
-
-        this.status = 'up';
-
-        if (opt.text.length > 0) {
-            this.textCanvas = this.game.fontRenderer.createStaticString(opt.text);
-        }
-
-        this.uiActive = false;
-    }
-
-    B.prototype.onUpdate = function() {
-        var input = this.game.input;
-        var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
-
-        if (isHovering) {
-            this.activateUi();
-
-            if (input.mouse.isPressed(input.MOUSE_LEFT)) {
-                this.status = 'down';
-            }
-
-            if (this.status === 'upactive') {
-                this.status = 'down';
-            }
-
-            if (this.status !== 'down') {
-                this.status = 'hover';
-            }
-        } else {
-            if (this.status === 'down' || this.status === 'upactive') {
-                this.status = 'upactive';
-            } else {
-                this.deactivateUi();
-                this.status = 'up';
-            }
-        }
-
-        this.handleMouseRelease();
     };
 
-    B.prototype.activateUi = function() {
+    // Set dimensions as ratio
+    U.prototype.setDimensions = function(width, height) {
+        var dimensions = this.game.renderer.ratioToScreenCoord(width, height);
+        this.width = dimensions.x;
+        this.height = dimensions.y;
+    };
+
+    U.prototype.activateUi = function() {
         if (this.uiActive === false) {
             this.game.addActiveUi(this);
             this.uiActive = true;
         }
     };
 
-    B.prototype.deactivateUi = function() {
+    U.prototype.deactivateUi = function() {
         if (this.uiActive === true) {
             this.game.removeActiveUi(this);
             this.uiActive = false;
+        }
+    };
+
+    U.prototype.isMouseHovering = function() {
+        return this.game.input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
+    };
+
+    return U;
+})();
+
+var Panel = (function() {
+    function P(game, x, y, width, height, opt) {
+        UiElement.apply(this, arguments);
+    }
+    P.prototype = Object.create(UiElement.prototype);
+
+    P.prototype.onUpdate = function() {
+        if (this.isMouseHovering()) {
+            this.activateUi();
+        } else {
+            this.deactivateUi();
+        }
+    };
+
+    P.prototype.onRender = function() {
+        var renderer = this.game.renderer;
+        renderer.gc.fillStyle = 'rgba(170, 170, 170, 0.5)';
+        renderer.gc.fillRect(this.x, this.y, this.width, this.height);
+    };
+    return P;
+})();
+
+var Button = (function() {
+    function B(game, x, y, width, height, opt) {
+        UiElement.apply(this, arguments);
+
+        this.status = 'up';
+
+        if (opt.text.length > 0) {
+            this.textCanvas = this.game.fontRenderer.createStaticString(opt.text, {baseline:'bottom'});
+        }
+    }
+    B.prototype = Object.create(UiElement.prototype);
+
+    B.prototype.onUpdate = function() {
+        var input = this.game.input;
+        var hovering = this.isMouseHovering();
+        if (hovering) {
+            this.activateUi();
+        }
+        if (this.game.getActiveUi() === this) {
+            if (this.isMouseHovering()) {
+                if (input.mouse.isPressed(input.MOUSE_LEFT)) {
+                    this.status = 'down';
+                }
+
+                if (this.status === 'upactive') {
+                    this.status = 'down';
+                }
+
+                if (this.status !== 'down') {
+                    this.status = 'hover';
+                }
+            } else {
+                if (this.status === 'down' || this.status === 'upactive') {
+                    this.status = 'upactive';
+                } else {
+                    this.deactivateUi();
+                    this.status = 'up';
+                }
+            }
+
+            this.handleMouseRelease();
         }
     };
 
@@ -264,6 +312,7 @@ var TestWorld = (function() {
         this.stringCanvas = this.game.fontRenderer.createStaticString('Hello world!');
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 
+        this.showDevelopScreen = false;
         this.buttonCounter = 0;
         this.button = new Button(this.game, 1, 1.0, 0.5, 0.25, {
             text: 'Dev',
@@ -272,6 +321,7 @@ var TestWorld = (function() {
         });
         this.button.onClick = (function() {
             this.buttonCounter++;
+            this.showDevelopScreen = true;
             this.stringCanvas = this.game.fontRenderer.createStaticString(this.buttonCounter.toString());
         }).bind(this);
 
@@ -284,6 +334,20 @@ var TestWorld = (function() {
             console.log('end week');
         };
 
+        this.closeButton = new Button(this.game, 0.02, 0.02, 0.35, 0.25, {
+            text: 'Close',
+            valign: 'top',
+            halign: 'left',
+            layer: -2
+        });
+        this.closeButton.onClick = (function() {
+            this.showDevelopScreen = false;
+            this.closeButton.deactivateUi();
+            this.panel.deactivateUi();
+        }).bind(this);
+
+        this.panel = new Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
+
         this.camX = 0;
         this.camY = 0;
         this.mouseClickPos = null;
@@ -293,6 +357,11 @@ var TestWorld = (function() {
     T.prototype.update = function() {
         this.button.onUpdate();
         this.endTurnButton.onUpdate();
+
+        if (this.showDevelopScreen) {
+            this.panel.onUpdate();
+            this.closeButton.onUpdate();
+        }
 
         if (this.game.getActiveUi() === null) {
             var input = this.game.input;
@@ -344,6 +413,11 @@ var TestWorld = (function() {
         var ship = this.game.assets.ship;
         var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
         renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
+
+        if (this.showDevelopScreen) {
+            this.panel.onRender();
+            this.closeButton.onRender();
+        }
     };
 
     T.prototype.onMouseMove = function(e) {
