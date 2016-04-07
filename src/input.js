@@ -184,8 +184,8 @@ var Mouse = (function() {
     }
 
     M.prototype.onMouseMove = function(e) {
-        this.layerX = e.layerX;
-        this.layerY = e.layerY;
+        this.layerX = e.clientX - e.target.offsetLeft;
+        this.layerY = e.clientY - e.target.offsetTop;
         this.mouseMoving = true;
     };
 

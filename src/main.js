@@ -17,6 +17,10 @@ window.onBodyLoad = () => {
 var Game = (function() {
     function G() {
         this.world = null;
+
+        // The current active ui elements
+        // e.g. A button currently being hovered over
+        this.activeUiElements = [];
     }
 
     G.prototype.init = function() {
@@ -64,6 +68,30 @@ var Game = (function() {
         this.world = world;
     };
 
+    G.prototype.addActiveUi = function(ui) {
+        if (!_.contains(this.activeUiElements, ui)) {
+            this.activeUiElements.push(ui);
+        }
+        console.log(this.activeUiElements);
+    };
+
+    G.prototype.removeActiveUi = function(ui) {
+        var index = this.activeUiElements.indexOf(ui);
+        if (index >= 0) {
+            this.activeUiElements.splice(index, 1);
+        }
+        console.log(this.activeUiElements);
+    };
+
+    // Returns the first item in the active ui array
+    G.prototype.getActiveUi = function() {
+        if (this.activeUiElements.length > 0) {
+            return this.activeUiElements[0];
+        } else {
+            return null;
+        }
+    };
+
     return G;
 })();
 
@@ -102,6 +130,8 @@ var Button = (function() {
             this.x = pos.x - this.width/2;
         } else if (opt.halign === 'left') {
             this.x = pos.x;
+        } else if (opt.halign === 'right') {
+            this.x = pos.x - this.width;
         }
 
         if (opt.valign === 'center') {
@@ -117,6 +147,8 @@ var Button = (function() {
         if (opt.text.length > 0) {
             this.textCanvas = this.game.fontRenderer.createStaticString(opt.text);
         }
+
+        this.uiActive = false;
     }
 
     B.prototype.onUpdate = function() {
@@ -124,6 +156,8 @@ var Button = (function() {
         var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
 
         if (isHovering) {
+            this.activateUi();
+
             if (input.mouse.isPressed(input.MOUSE_LEFT)) {
                 this.status = 'down';
             }
@@ -139,11 +173,26 @@ var Button = (function() {
             if (this.status === 'down' || this.status === 'upactive') {
                 this.status = 'upactive';
             } else {
+                this.deactivateUi();
                 this.status = 'up';
             }
         }
 
         this.handleMouseRelease();
+    };
+
+    B.prototype.activateUi = function() {
+        if (this.uiActive === false) {
+            this.game.addActiveUi(this);
+            this.uiActive = true;
+        }
+    };
+
+    B.prototype.deactivateUi = function() {
+        if (this.uiActive === true) {
+            this.game.removeActiveUi(this);
+            this.uiActive = false;
+        }
     };
 
     // Handles the actions that occur when you release the mouse button.
@@ -216,14 +265,24 @@ var TestWorld = (function() {
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 
         this.buttonCounter = 0;
-        this.button = new Button(this.game, 0.5, 1.0, 1, 0.25, {
-            text: 'Develop',
-            valign: 'bottom'
+        this.button = new Button(this.game, 1, 1.0, 0.5, 0.25, {
+            text: 'Dev',
+            valign: 'bottom',
+            halign: 'right'
         });
         this.button.onClick = (function() {
             this.buttonCounter++;
             this.stringCanvas = this.game.fontRenderer.createStaticString(this.buttonCounter.toString());
         }).bind(this);
+
+        this.endTurnButton = new Button(this.game, 0, 1.0, 0.5, 0.25, {
+            text: 'End',
+            valign: 'bottom',
+            halign: 'left'
+        });
+        this.endTurnButton.onClick = function() {
+            console.log('end week');
+        };
 
         this.camX = 0;
         this.camY = 0;
@@ -233,27 +292,33 @@ var TestWorld = (function() {
 
     T.prototype.update = function() {
         this.button.onUpdate();
+        this.endTurnButton.onUpdate();
 
-        var input = this.game.input;
-        if (input.mouse.isPressed(input.MOUSE_LEFT)) {
-            this.mouseClickPos = {x:input.mouse.getX(), y:input.mouse.getY()};
-        }
-        if (this.mouseClickPos !== null) {
-            if (input.mouse.isMoving()) {
-                var x = this.mouseClickPos.x - input.mouse.getX();
-                var y = this.mouseClickPos.y - input.mouse.getY();
-                this.camX += Math.round(x/8);
-                this.camY += Math.round(y/8);
-                if (this.camX < this.cameraBounds.x1) this.camX = this.cameraBounds.x1;
-                if (this.camX > this.cameraBounds.x2) this.camX = this.cameraBounds.x2;
-                if (this.camY < this.cameraBounds.y1) this.camY = this.cameraBounds.y1;
-                if (this.camY > this.cameraBounds.y2) this.camY = this.cameraBounds.y2;
+        if (this.game.getActiveUi() === null) {
+            var input = this.game.input;
+            if (input.mouse.isPressed(input.MOUSE_LEFT)) {
                 this.mouseClickPos = {x:input.mouse.getX(), y:input.mouse.getY()};
             }
+            if (this.mouseClickPos !== null) {
+                if (input.mouse.isMoving()) {
+                    var x = this.mouseClickPos.x - input.mouse.getX();
+                    var y = this.mouseClickPos.y - input.mouse.getY();
+                    this.camX += Math.round(x/8);
+                    this.camY += Math.round(y/8);
+                    if (this.camX < this.cameraBounds.x1) this.camX = this.cameraBounds.x1;
+                    if (this.camX > this.cameraBounds.x2) this.camX = this.cameraBounds.x2;
+                    if (this.camY < this.cameraBounds.y1) this.camY = this.cameraBounds.y1;
+                    if (this.camY > this.cameraBounds.y2) this.camY = this.cameraBounds.y2;
+                    this.mouseClickPos = {x:input.mouse.getX(), y:input.mouse.getY()};
+                }
 
-            if (input.mouse.isReleased(input.MOUSE_LEFT)) {
-                this.mouseClickPos = null;
+                if (input.mouse.isReleased(input.MOUSE_LEFT)) {
+                    this.mouseClickPos = null;
+                }
             }
+        }
+        if (this.game.input.mouse.isReleased(this.game.input.MOUSE_LEFT)) {
+            this.mouseClickPos = null;
         }
     };
 
@@ -274,6 +339,7 @@ var TestWorld = (function() {
         renderer.drawImage(this.stringCanvas, 0, 0);
 
         this.button.onRender();
+        this.endTurnButton.onRender();
 
         var ship = this.game.assets.ship;
         var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
