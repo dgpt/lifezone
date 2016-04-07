@@ -177,6 +177,46 @@ var UiElement = (function() {
     return U;
 })();
 
+var UiGroup = (function() {
+    function U() {
+        this.elements = [];
+        this.active = true;
+    }
+
+    U.prototype.setActive = function(active) {
+        this.active = active;
+    };
+
+    // Adds a list of elements to the group
+    U.prototype.addElements = function() {
+        for (var i=0; i<arguments.length; ++i) {
+            this.elements.push(arguments[i]);
+        }
+    };
+
+    U.prototype.update = function() {
+        if (this.active) {
+            for (var i=0; i<this.elements.length; ++i) {
+                this.elements[i].onUpdate();
+            }
+        } else {
+            for (var i=0; i<this.elements.length; ++i) {
+                this.elements[i].deactivateUi();
+            }
+        }
+    };
+
+    U.prototype.render = function() {
+        if (this.active) {
+            for (var i=0; i<this.elements.length; ++i) {
+                this.elements[i].onRender();
+            }
+        }
+    };
+
+    return U;
+})();
+
 var Panel = (function() {
     function P(game, x, y, width, height, opt) {
         UiElement.apply(this, arguments);
@@ -268,7 +308,7 @@ var Button = (function() {
                 renderer.gc.fillStyle = '#505050';
                 break;
             case 'hover':
-                renderer.gc.fillStyle = '#BBBBBB';
+                renderer.gc.fillStyle = '#CCCCCC';
                 break;
 
         }
@@ -312,7 +352,6 @@ var TestWorld = (function() {
         this.stringCanvas = this.game.fontRenderer.createStaticString('Hello world!');
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 
-        this.showDevelopScreen = false;
         this.buttonCounter = 0;
         this.button = new Button(this.game, 1, 1.0, 0.5, 0.25, {
             text: 'Dev',
@@ -321,7 +360,7 @@ var TestWorld = (function() {
         });
         this.button.onClick = (function() {
             this.buttonCounter++;
-            this.showDevelopScreen = true;
+            this.devUi.setActive(true);
             this.stringCanvas = this.game.fontRenderer.createStaticString(this.buttonCounter.toString());
         }).bind(this);
 
@@ -334,6 +373,7 @@ var TestWorld = (function() {
             console.log('end week');
         };
 
+        this.devUi = new UiGroup();
         this.closeButton = new Button(this.game, 0.02, 0.02, 0.35, 0.25, {
             text: 'Close',
             valign: 'top',
@@ -341,12 +381,11 @@ var TestWorld = (function() {
             layer: -2
         });
         this.closeButton.onClick = (function() {
-            this.showDevelopScreen = false;
-            this.closeButton.deactivateUi();
-            this.panel.deactivateUi();
+            this.devUi.setActive(false);
         }).bind(this);
-
         this.panel = new Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
+        this.devUi.addElements(this.panel, this.closeButton);
+        this.devUi.active = false;
 
         this.camX = 0;
         this.camY = 0;
@@ -358,10 +397,7 @@ var TestWorld = (function() {
         this.button.onUpdate();
         this.endTurnButton.onUpdate();
 
-        if (this.showDevelopScreen) {
-            this.panel.onUpdate();
-            this.closeButton.onUpdate();
-        }
+        this.devUi.update();
 
         if (this.game.getActiveUi() === null) {
             var input = this.game.input;
@@ -414,10 +450,7 @@ var TestWorld = (function() {
         var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
         renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
 
-        if (this.showDevelopScreen) {
-            this.panel.onRender();
-            this.closeButton.onRender();
-        }
+        this.devUi.render();
     };
 
     T.prototype.onMouseMove = function(e) {
