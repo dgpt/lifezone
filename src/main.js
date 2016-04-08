@@ -26,6 +26,8 @@ var Game = (function() {
         this.populationMax = 1000;
         this.money = 10000;
         this.research = 0;
+
+        this.developmentModules = 0;
     }
 
     G.prototype.init = function() {
@@ -301,7 +303,7 @@ var Panel = (function() {
 
     P.prototype.onRender = function() {
         var renderer = this.game.renderer;
-        renderer.gc.fillStyle = 'rgba(170, 170, 170, 0.5)';
+        renderer.gc.fillStyle = 'rgba(50, 100, 150, 0.85)';
         renderer.gc.fillRect(this.x, this.y, this.width, this.height);
     };
     return P;
@@ -463,24 +465,44 @@ var TestWorld = (function() {
         this.statUi.setActive(false);
         this.statUi.addElements(this.popText, this.personIcon, this.moneyText, this.moneyIcon, this.researchText, this.researchIcon);
 
+        this.createDevelopmentUi();
+
+        this.camX = 0;
+        this.camY = 0;
+        this.mouseClickPos = null;
+        this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
+    };
+
+    T.prototype.createDevelopmentUi = function() {
         this.devUi = new UiGroup();
-        this.closeButton = new Button(this.game, 0.02, 0.02, 0.35, 0.25, {
+
+        var titleText = new UiText(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
+        var devModuleText = new UiText(this.game, 0, 0.25, 'Dev Module', {halign:'left', valign:'top'});
+        var moneyIcon = new UiImage(this.game, this.game.assets.moneyIcon, 0, devModuleText.getBottom(), {halign:'left'});
+        var devModuleCost = new UiText(this.game, moneyIcon.getRight() + 0.01, devModuleText.getBottom() + 0.03, '150', {halign:'left'});
+        var popIcon = new UiImage(this.game, this.game.assets.personIcon, devModuleCost.getRight() + 0.05, devModuleText.getBottom(), {halign:'left'});
+        var devModulePopCost = new UiText(this.game, popIcon.getRight() + 0.02, devModuleText.getBottom() + 0.03, '1', {halign:'left'});
+
+        var purchaseButton = new Button(this.game, 0.98, devModuleText.getBottom(), 0.25, 0.15, {
+            text: 'Buy',
+            halign: 'right',
+            valign: 'bottom',
+            layer: -2
+        });
+
+        this.closeButton = new Button(this.game, 1, 0, 0.35, 0.125, {
             text: 'Close',
             valign: 'top',
-            halign: 'left',
+            halign: 'right',
             layer: -2
         });
         this.closeButton.onClick = (function() {
             this.devUi.setActive(false);
         }).bind(this);
         this.panel = new Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
-        this.devUi.addElements(this.panel, this.closeButton);
-        this.devUi.active = false;
 
-        this.camX = 0;
-        this.camY = 0;
-        this.mouseClickPos = null;
-        this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
+        this.devUi.addElements(this.panel, titleText, this.closeButton, devModuleText, devModuleCost, moneyIcon, popIcon, devModulePopCost, purchaseButton);
+        this.devUi.active = false;
     };
 
     T.prototype.update = function() {
