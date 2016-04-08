@@ -66,6 +66,13 @@ var PixelRenderer = (function() {
         return this.roundScreenCoord(x * this.canvas.width, y * this.canvas.height);
     };
 
+    // Converts screen coordinates to ratio
+    R.prototype.screenCoordToRatio = function(x, y) {
+        x = x / this.canvas.width;
+        y = y / this.canvas.height;
+        return {x:x, y:y};
+    };
+
     // Convert screen coordinate into a pixel-safe screen coordinate
     R.prototype.roundScreenCoord = function(x, y) {
         x = Math.round(x / this.pixelSize) * this.pixelSize;
