@@ -1,3 +1,4 @@
+const { LODE } = require('../lib/lode');
 var ship, renderer, shipX, shipY;
 
 // Override default requestAnimationFrame for maximum compatibility.
@@ -7,7 +8,7 @@ var requestAnimationFrame = window.requestAnimationFrame
                        || window.msRequestAnimationFrame
                        || function(func) { setTimeout(func, 1000/60) };
 
-function onBodyLoad() {
+window.onBodyLoad = () => {
     var loader = LODE.createLoader();
     ship = loader.loadImage('ship.png');
     loader.load({
