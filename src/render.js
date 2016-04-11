@@ -73,6 +73,13 @@ var PixelRenderer = (function() {
         return {x:x, y:y};
     };
 
+    // Converts pixel coordinates to ratio
+    R.prototype.pixelCoordToRatio = function(x, y) {
+        x = x / this.RESOLUTION;
+        y = y / this.RESOLUTION;
+        return {x:x, y:y};
+    };
+
     // Convert screen coordinate into a pixel-safe screen coordinate
     R.prototype.roundScreenCoord = function(x, y) {
         x = Math.round(x / this.pixelSize) * this.pixelSize;
