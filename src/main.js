@@ -140,6 +140,12 @@ class ModuleButton extends ui.Clickable {
         this.img = img;
     }
 
+    onUpdate() {
+        if (this.game.getActiveUi() === null) {
+            this.handleButtonInput();
+        }
+    }
+
     onRender() {
         var renderer = this.game.renderer;
         renderer.drawImage(this.img, this.x, this.y);
