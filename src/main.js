@@ -368,7 +368,11 @@ class Button extends UiClickable {
     constructor(game, x, y, width, height, opt) {
         super(game, x, y, width, height, opt);
 
-        if (opt.text.length > 0) {
+        this.opt = _.extend({
+            text: '',
+        }, this.opt, opt);
+
+        if (this.opt.text.length > 0) {
             this.textCanvas = this.game.fontRenderer.createStaticString(opt.text, {baseline:'bottom'});
         }
     }
@@ -389,7 +393,17 @@ class Button extends UiClickable {
     }
 
     setText(text) {
-        this.textCanvas = this.game.fontRenderer.createStaticString(text, {baseline:'bottom'});
+        if (text.length > 0) {
+            this.setIcon(null);
+            this.textCanvas = this.game.fontRenderer.createStaticString(text, {baseline:'bottom'});
+        } else {
+            this.textCanvas = null;
+        }
+    }
+
+    setIcon(img) {
+        this.opt.img = img;
+        if (img) this.setText('');
     }
 
     onRender() {
@@ -407,9 +421,14 @@ class Button extends UiClickable {
                 break;
         }
         renderer.gc.fillRect(this.x, this.y, this.width, this.height);
-        if (this.textCanvas !== undefined) {
+        if (this.textCanvas) {
             var textDimension = renderer.pixelCoordToScreen(this.textCanvas.width, this.textCanvas.height);
             renderer.drawImage(this.textCanvas, this.x + this.width/2 - textDimension.x/2, this.y + this.height/2 - textDimension.y/2);
+        }
+        if (this.opt.img) {
+            var img = this.opt.img;
+            var imgDimension = renderer.pixelCoordToScreen(img.width, img.height);
+            renderer.drawImage(this.opt.img, this.x + this.width/2 - imgDimension.x/2, this.y + this.height/2 - imgDimension.y/2);
         }
     }
 }
@@ -455,7 +474,6 @@ class MainWorld extends World {
 
         this.buttonUi = new UiGroup();
         this.actionButton = new Button(this.game, 1, 1.0, 0.5, 0.25, {
-            text: 'Dev',
             valign: 'bottom',
             halign: 'right'
         });
@@ -508,15 +526,15 @@ class MainWorld extends World {
         var img = this.game.assets.img;
         this.devModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.factory, {valign:'top', halign:'left'});
         this.devModule.onClick = () => {
-            this.actionButton.setText('Dev');
+            this.actionButton.setIcon(this.game.assets.img.moneyIcon);
         }
         this.manageModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.mine, {valign:'top', halign:'left'});
         this.manageModule.onClick = () => {
-            this.actionButton.setText('Man');
+            this.actionButton.setIcon(this.game.assets.img.personIcon);
         }
         this.researchModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.lab,{valign:'top', halign:'left'});
         this.researchModule.onClick = () => {
-            this.actionButton.setText('Res');
+            this.actionButton.setIcon(this.game.assets.img.researchIcon);
         }
         this.moduleButtonsUi.addElements(this.devModule, this.manageModule, this.researchModule);
 
