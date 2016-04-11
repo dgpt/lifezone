@@ -10,6 +10,7 @@ var requestAnimationFrame = window.requestAnimationFrame
 var time = require('./time.js');
 var input = require('./input.js');
 var render = require('./render.js');
+var ui = require('./ui.js');
 
 window.onBodyLoad = () => {
     var game = new Game();
@@ -132,308 +133,7 @@ class GameAssets {
     }
 }
 
-class UiElement {
-    constructor(game, x, y, width, height, opt) {
-        this.game = game;
-        this.uiActive = false;
-
-        this.opt = _.extend({
-            text: '',
-            halign: 'center',
-            valign: 'center',
-            layer: 0
-        }, opt);
-
-        this.setDimensions(width, height);
-        this.setPos(x, y);
-        this.ratioX = x;
-        this.ratioY = y;
-        this.ratioW = width;
-        this.ratioH = height;
-    }
-
-    // Set position as ratio
-    setPos(x, y) {
-        var pos = this.game.renderer.ratioToScreenCoord(x, y);
-        if (this.opt.halign === 'center') {
-            this.x = pos.x - this.width/2;
-        } else if (this.opt.halign === 'left') {
-            this.x = pos.x;
-        } else if (this.opt.halign === 'right') {
-            this.x = pos.x - this.width;
-        }
-
-        if (this.opt.valign === 'center') {
-            this.y = pos.y - this.height/2;
-        } else if (this.opt.valign === 'top') {
-            this.y = pos.y;
-        } else if (this.opt.valign === 'bottom') {
-            this.y = pos.y - this.height;
-        }
-
-        this.ratioX = x;
-        this.ratioY = y;
-    }
-
-    getRight() {
-        return this.ratioX + this.ratioW;
-    }
-
-    getBottom() {
-        return this.ratioY + this.ratioH;
-    }
-
-    // Set dimensions as ratio
-    setDimensions(width, height) {
-        var dimensions = this.game.renderer.ratioToScreenCoord(width, height);
-        this.width = dimensions.x;
-        this.height = dimensions.y;
-        this.ratioW = width;
-        this.ratioH = height;
-    }
-
-    activateUi() {
-        if (this.uiActive === false) {
-            this.game.addActiveUi(this);
-            this.uiActive = true;
-        }
-    }
-
-    deactivateUi() {
-        if (this.uiActive === true) {
-            this.game.removeActiveUi(this);
-            this.uiActive = false;
-        }
-    }
-
-    isMouseHovering() {
-        return this.game.input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
-    }
-}
-
-class UiGroup {
-    constructor() {
-        this.elements = [];
-        this.active = true;
-    }
-
-    setActive(active) {
-        this.active = active;
-    }
-
-    // Adds a list of elements to the group
-    addElements() {
-        for (var i=0; i<arguments.length; ++i) {
-            this.elements.push(arguments[i]);
-        }
-    }
-
-    update() {
-        if (this.active) {
-            for (var i=0; i<this.elements.length; ++i) {
-                if (this.elements[i].onUpdate) this.elements[i].onUpdate();
-            }
-        } else {
-            for (var i=0; i<this.elements.length; ++i) {
-                this.elements[i].deactivateUi();
-            }
-        }
-    }
-
-    render() {
-        if (this.active) {
-            for (var i=0; i<this.elements.length; ++i) {
-                this.elements[i].onRender();
-            }
-        }
-    }
-}
-
-class UiImage extends UiElement {
-    constructor(game, img, x, y, opt) {
-        super(game, x, y, 0, 0, opt);
-        this.img = img;
-
-        var pDimension = this.game.renderer.pixelCoordToScreen(this.img.width, this.img.height);
-        var ratioDimension = this.game.renderer.screenCoordToRatio(pDimension.x, pDimension.y);
-        this.setDimensions(ratioDimension.x, ratioDimension.y);
-        this.setPos(this.ratioX, this.ratioY);
-    }
-
-    onRender() {
-        this.game.renderer.drawImage(this.img, this.x, this.y);
-    }
-}
-
-class UiText extends UiElement {
-    constructor(game, x, y, text, opt) {
-        super(game, x, y, 0, 0, opt);
-        this.setText(text);
-    }
-
-    setText(text) {
-        this.text = this.game.fontRenderer.createStaticString(text);
-
-        var pDimension = this.game.renderer.pixelCoordToScreen(this.text.width, this.text.height);
-        var ratioDimension = this.game.renderer.screenCoordToRatio(pDimension.x, pDimension.y);
-        this.setDimensions(ratioDimension.x, ratioDimension.y);
-
-        this.setPos(this.ratioX, this.ratioY);
-    }
-
-    onRender() {
-        this.game.renderer.drawImage(this.text, this.x, this.y);
-    }
-}
-
-class Panel extends UiElement {
-    constructor(game, x, y, width, height, opt) {
-        super(game, x, y, width, height, opt);
-    }
-
-    onUpdate() {
-        if (this.isMouseHovering()) {
-            this.activateUi();
-        } else {
-            this.deactivateUi();
-        }
-    }
-
-    onRender() {
-        var renderer = this.game.renderer;
-        renderer.gc.fillStyle = 'rgba(50, 100, 150, 0.85)';
-        renderer.gc.fillRect(this.x, this.y, this.width, this.height);
-    }
-}
-
-class UiClickable extends UiElement {
-    constructor(game, x, y, width, height, opt) {
-        super(game, x, y, width, height, opt);
-
-        this.status = 'up';
-    }
-
-    setStatus(status) {
-        this.status = status;
-        if (this.onStatusChange) {
-            this.onStatusChange(this.status);
-        }
-    }
-
-    onUpdate() {
-        this.handleButtonInput();
-    }
-
-    handleButtonInput() {
-        var input = this.game.input;
-        if (this.isMouseHovering()) {
-            if (input.mouse.isPressed(input.MOUSE_LEFT)) {
-                this.setStatus('down');
-            }
-
-            if (this.status === 'upactive') {
-                this.setStatus('down');
-            }
-
-            if (this.status !== 'down') {
-                this.setStatus('hover');
-            }
-        } else {
-            if (this.status === 'down' || this.status === 'upactive') {
-                this.setStatus('upactive');
-            } else {
-                this.setStatus('up');
-            }
-        }
-
-        this.handleMouseRelease();
-    }
-
-    // Handles the actions that occur when you release the mouse button.
-    handleMouseRelease() {
-        var input = this.game.input;
-        if (input.mouse.isReleased(input.MOUSE_LEFT)) {
-            var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
-            if (this.status === 'down') {
-                if (this.onClick) {
-                    this.onClick();
-                }
-            }
-            this.status = isHovering ? 'hover' : 'up';
-        }
-    }
-}
-
-class Button extends UiClickable {
-    constructor(game, x, y, width, height, opt) {
-        super(game, x, y, width, height, opt);
-
-        this.opt = _.extend({
-            text: '',
-        }, this.opt, opt);
-
-        if (this.opt.text.length > 0) {
-            this.textCanvas = this.game.fontRenderer.createStaticString(opt.text, {baseline:'bottom'});
-        }
-    }
-
-    onUpdate() {
-        if (this.isMouseHovering()) {
-            this.activateUi();
-        }
-        if (this.game.getActiveUi() === this) {
-            this.handleButtonInput();
-        }
-    }
-
-    onStatusChange(status) {
-        if (status === 'up') {
-            this.deactivateUi();
-        }
-    }
-
-    setText(text) {
-        if (text.length > 0) {
-            this.setIcon(null);
-            this.textCanvas = this.game.fontRenderer.createStaticString(text, {baseline:'bottom'});
-        } else {
-            this.textCanvas = null;
-        }
-    }
-
-    setIcon(img) {
-        this.opt.img = img;
-        if (img) this.setText('');
-    }
-
-    onRender() {
-        var renderer = this.game.renderer;
-        switch(this.status) {
-            case 'up':
-            case 'upactive':
-                renderer.gc.fillStyle = '#AAAAAA';
-                break;
-            case 'down':
-                renderer.gc.fillStyle = '#505050';
-                break;
-            case 'hover':
-                renderer.gc.fillStyle = '#CCCCCC';
-                break;
-        }
-        renderer.gc.fillRect(this.x, this.y, this.width, this.height);
-        if (this.textCanvas) {
-            var textDimension = renderer.pixelCoordToScreen(this.textCanvas.width, this.textCanvas.height);
-            renderer.drawImage(this.textCanvas, this.x + this.width/2 - textDimension.x/2, this.y + this.height/2 - textDimension.y/2);
-        }
-        if (this.opt.img) {
-            var img = this.opt.img;
-            var imgDimension = renderer.pixelCoordToScreen(img.width, img.height);
-            renderer.drawImage(this.opt.img, this.x + this.width/2 - imgDimension.x/2, this.y + this.height/2 - imgDimension.y/2);
-        }
-    }
-}
-
-class ModuleButton extends UiClickable {
+class ModuleButton extends ui.Clickable {
     constructor(game, x, y, width, height, img, opt) {
         var ratioDimension = game.renderer.pixelCoordToRatio(img.width, img.height);
         super(game, x, y, ratioDimension.x, ratioDimension.y, opt);
@@ -472,8 +172,8 @@ class MainWorld extends World {
     init() {
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 
-        this.buttonUi = new UiGroup();
-        this.actionButton = new Button(this.game, 1, 1.0, 0.5, 0.25, {
+        this.buttonUi = new ui.Group();
+        this.actionButton = new ui.Button(this.game, 1, 1.0, 0.5, 0.25, {
             valign: 'bottom',
             halign: 'right'
         });
@@ -483,7 +183,7 @@ class MainWorld extends World {
             this.popText.setText(this.game.population.toString() + '/' + this.game.populationMax.toString());
         }).bind(this);
 
-        this.endTurnButton = new Button(this.game, 0, 0.875, 0.5, 0.125, {
+        this.endTurnButton = new ui.Button(this.game, 0, 0.875, 0.5, 0.125, {
             text: 'End',
             valign: 'bottom',
             halign: 'left'
@@ -492,7 +192,7 @@ class MainWorld extends World {
             console.log('end week');
         };
 
-        this.statButton = new Button(this.game, 0, 1.0, 0.5, 0.125, {
+        this.statButton = new ui.Button(this.game, 0, 1.0, 0.5, 0.125, {
             text: 'Stats',
             valign: 'bottom',
             halign: 'left'
@@ -502,16 +202,16 @@ class MainWorld extends World {
         }).bind(this);
         this.buttonUi.addElements(this.actionButton, this.endTurnButton, this.statButton);
 
-        this.statUi = new UiGroup();
+        this.statUi = new ui.Group();
         var hPad = 0.02;
-        this.personIcon = new UiImage(this.game, this.game.assets.img.personIcon, 0.01, 0, {halign:'left', valign:'top'});
-        this.popText = new UiText(this.game, this.personIcon.getRight() + hPad, 0, this.game.population.toString() + '/' + this.game.populationMax.toString(), {halign: 'left', valign: 'top'});
+        this.personIcon = new ui.UiImage(this.game, this.game.assets.img.personIcon, 0.01, 0, {halign:'left', valign:'top'});
+        this.popText = new ui.Text(this.game, this.personIcon.getRight() + hPad, 0, this.game.population.toString() + '/' + this.game.populationMax.toString(), {halign: 'left', valign: 'top'});
 
-        this.moneyIcon = new UiImage(this.game, this.game.assets.img.moneyIcon, 0.01, this.personIcon.getBottom() + 0.01, {halign:'left', valign:'top'});
-        this.moneyText = new UiText(this.game, this.moneyIcon.getRight() + hPad, this.personIcon.getBottom() + 0.01, this.game.money.toString(), {halign: 'left', valign: 'top'});
+        this.moneyIcon = new ui.UiImage(this.game, this.game.assets.img.moneyIcon, 0.01, this.personIcon.getBottom() + 0.01, {halign:'left', valign:'top'});
+        this.moneyText = new ui.Text(this.game, this.moneyIcon.getRight() + hPad, this.personIcon.getBottom() + 0.01, this.game.money.toString(), {halign: 'left', valign: 'top'});
 
-        this.researchIcon = new UiImage(this.game, this.game.assets.img.researchIcon, 0.01, this.moneyIcon.getBottom() + 0.02, {halign:'left', valign:'top'});
-        this.researchText = new UiText(this.game, this.moneyIcon.getRight() + hPad, this.moneyIcon.getBottom() + 0.02, this.game.research.toString(), {halign: 'left', valign: 'top'});
+        this.researchIcon = new ui.UiImage(this.game, this.game.assets.img.researchIcon, 0.01, this.moneyIcon.getBottom() + 0.02, {halign:'left', valign:'top'});
+        this.researchText = new ui.Text(this.game, this.moneyIcon.getRight() + hPad, this.moneyIcon.getBottom() + 0.02, this.game.research.toString(), {halign: 'left', valign: 'top'});
         this.statUi.setActive(false);
         this.statUi.addElements(this.popText, this.personIcon, this.moneyText, this.moneyIcon, this.researchText, this.researchIcon);
 
@@ -522,7 +222,7 @@ class MainWorld extends World {
         this.mouseClickPos = null;
         this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
 
-        this.moduleButtonsUi = new UiGroup();
+        this.moduleButtonsUi = new ui.Group();
         var img = this.game.assets.img;
         this.devModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.factory, {valign:'top', halign:'left'});
         this.devModule.onClick = () => {
@@ -542,23 +242,23 @@ class MainWorld extends World {
     }
 
     createDevelopmentUi() {
-        this.devUi = new UiGroup();
+        this.devUi = new ui.Group();
 
-        var titleText = new UiText(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
-        var devModuleText = new UiText(this.game, 0, 0.25, 'Dev Module', {halign:'left', valign:'top'});
-        var moneyIcon = new UiImage(this.game, this.game.assets.img.moneyIcon, 0, devModuleText.getBottom(), {halign:'left'});
-        var devModuleCost = new UiText(this.game, moneyIcon.getRight() + 0.01, devModuleText.getBottom() + 0.03, '150', {halign:'left'});
-        var popIcon = new UiImage(this.game, this.game.assets.img.personIcon, devModuleCost.getRight() + 0.05, devModuleText.getBottom(), {halign:'left'});
-        var devModulePopCost = new UiText(this.game, popIcon.getRight() + 0.02, devModuleText.getBottom() + 0.03, '1', {halign:'left'});
+        var titleText = new ui.Text(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
+        var devModuleText = new ui.Text(this.game, 0, 0.25, 'Dev Module', {halign:'left', valign:'top'});
+        var moneyIcon = new ui.UiImage(this.game, this.game.assets.img.moneyIcon, 0, devModuleText.getBottom(), {halign:'left'});
+        var devModuleCost = new ui.Text(this.game, moneyIcon.getRight() + 0.01, devModuleText.getBottom() + 0.03, '150', {halign:'left'});
+        var popIcon = new ui.UiImage(this.game, this.game.assets.img.personIcon, devModuleCost.getRight() + 0.05, devModuleText.getBottom(), {halign:'left'});
+        var devModulePopCost = new ui.Text(this.game, popIcon.getRight() + 0.02, devModuleText.getBottom() + 0.03, '1', {halign:'left'});
 
-        var purchaseButton = new Button(this.game, 0.98, devModuleText.getBottom(), 0.25, 0.15, {
+        var purchaseButton = new ui.Button(this.game, 0.98, devModuleText.getBottom(), 0.25, 0.15, {
             text: 'Buy',
             halign: 'right',
             valign: 'bottom',
             layer: -2
         });
 
-        this.closeButton = new Button(this.game, 1, 0, 0.35, 0.125, {
+        this.closeButton = new ui.Button(this.game, 1, 0, 0.35, 0.125, {
             text: 'Close',
             valign: 'top',
             halign: 'right',
@@ -567,7 +267,7 @@ class MainWorld extends World {
         this.closeButton.onClick = (function() {
             this.devUi.setActive(false);
         }).bind(this);
-        this.panel = new Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
+        this.panel = new ui.Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
 
         this.devUi.addElements(this.panel, titleText, this.closeButton, devModuleText, devModuleCost, moneyIcon, popIcon, devModulePopCost, purchaseButton);
         this.devUi.active = false;
