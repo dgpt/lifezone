@@ -230,3 +230,9 @@ var BitmapFontRenderer = (function() {
 
     return F;
 })();
+
+module.exports = {
+    PixelRenderer: PixelRenderer,
+    Glyph: Glyph,
+    BitmapFontRenderer: BitmapFontRenderer
+};

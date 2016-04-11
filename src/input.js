@@ -277,3 +277,9 @@ var Mouse = (function() {
 
     return M;
 })();
+
+module.exports = {
+    InputManager: InputManager,
+    Keyboard: Keyboard,
+    Mouse: Mouse
+};

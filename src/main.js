@@ -1,4 +1,3 @@
-const { LODE } = require('../lib/lode');
 var ship, font, fontInfo, fontRenderer, stringCanvas, renderer, shipX, shipY;
 
 // Override default requestAnimationFrame for maximum compatibility.
@@ -7,6 +6,10 @@ var requestAnimationFrame = window.requestAnimationFrame
                        || window.webkitRequestAnimationFrame
                        || window.msRequestAnimationFrame
                        || function(func) { setTimeout(func, 1000/60) };
+
+var time = require('./time.js');
+var input = require('./input.js');
+var render = require('./render.js');
 
 window.onBodyLoad = () => {
     var game = new Game();
@@ -31,8 +34,8 @@ var Game = (function() {
     }
 
     G.prototype.init = function() {
-        this.time = new TimeManager();
-        this.input = new InputManager();
+        this.time = new time.TimeManager();
+        this.input = new input.InputManager();
         this.assets = new GameAssets();
         this.assets.load(this.onAssetsLoaded.bind(this));
     };
@@ -40,9 +43,9 @@ var Game = (function() {
     G.prototype.onAssetsLoaded = function() {
         console.log("Assets loaded");
 
-        this.fontRenderer = new BitmapFontRenderer(this.assets.font, this.assets.fontInfo.data);
+        this.fontRenderer = new render.BitmapFontRenderer(this.assets.font, this.assets.fontInfo.data);
 
-        this.renderer = new PixelRenderer();
+        this.renderer = new render.PixelRenderer();
         this.renderer.init(document.getElementById('gameCanvas'));
 
         this.input.init(this.renderer.canvas);

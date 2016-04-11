@@ -17,3 +17,7 @@ var TimeManager = (function() {
 
     return T;
 })();
+
+module.exports = {
+    TimeManager: TimeManager
+};
