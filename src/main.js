@@ -110,7 +110,6 @@ class Game {
 class GameAssets {
     constructor() {
         this.loader = LODE.createLoader();
-        this.ship = this.loader.loadImage('assets/ship.png');
         this.fontInfo = this.loader.loadFile('assets/font.json');
 
         this.img = this.loader.loadImages('assets/', {
@@ -122,7 +121,8 @@ class GameAssets {
             factory: 'factory.png',
             exploreModule: 'explore-module.png',
             housing: 'housing.png',
-            mine: 'mine.png'
+            mine: 'mine.png',
+            pixelSelector: 'pixel-selector.png'
         });
     }
 
@@ -333,9 +333,9 @@ class MainWorld extends World {
         this.moduleButtonsUi.render();
         this.buttonUi.render();
 
-        var ship = this.game.assets.ship;
-        var shipOffset = renderer.pixelCoordToScreen(ship.width/2, ship.height/2);
-        renderer.drawImage(ship, this.shipX - shipOffset.x, this.shipY - shipOffset.y);
+        var selector = this.game.assets.img.pixelSelector;
+        var selectorOffset = renderer.pixelCoordToScreen(selector.width/2, selector.height/2);
+        renderer.drawImage(selector, this.game.input.mouse.getX() - selectorOffset.x, this.game.input.mouse.getY() - selectorOffset.y);
 
         this.statUi.render();
         this.devUi.render();
