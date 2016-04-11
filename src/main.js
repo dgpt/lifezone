@@ -17,8 +17,8 @@ window.onBodyLoad = () => {
     game.init();
 }
 
-var Game = (function() {
-    function G() {
+class Game {
+    constructor() {
         this.world = null;
 
         // The current active ui elements
@@ -33,14 +33,14 @@ var Game = (function() {
         this.developmentModules = 0;
     }
 
-    G.prototype.init = function() {
+    init() {
         this.time = new time.TimeManager();
         this.input = new input.InputManager();
         this.assets = new GameAssets();
         this.assets.load(this.onAssetsLoaded.bind(this));
-    };
+    }
 
-    G.prototype.onAssetsLoaded = function() {
+    onAssetsLoaded() {
         console.log("Assets loaded");
 
         this.fontRenderer = new render.BitmapFontRenderer(this.assets.font, this.assets.fontInfo.data);
@@ -55,9 +55,9 @@ var Game = (function() {
         }
 
         this.onUpdate();
-    };
+    }
 
-    G.prototype.onUpdate = function() {
+    onUpdate() {
         if (this.world) {
             this.world.onUpdate();
         }
@@ -72,29 +72,29 @@ var Game = (function() {
 
         var self = this;
         requestAnimationFrame(function() { self.onUpdate() });
-    };
+    }
 
-    G.prototype.setWorld = function(world) {
+    setWorld(world) {
         this.world = world;
-    };
+    }
 
-    G.prototype.addActiveUi = function(ui) {
+    addActiveUi(ui) {
         if (!_.contains(this.activeUiElements, ui)) {
             this.activeUiElements.push(ui);
         }
         console.log(this.activeUiElements);
-    };
+    }
 
-    G.prototype.removeActiveUi = function(ui) {
+    removeActiveUi(ui) {
         var index = this.activeUiElements.indexOf(ui);
         if (index >= 0) {
             this.activeUiElements.splice(index, 1);
         }
         console.log(this.activeUiElements);
-    };
+    }
 
     // Returns the first item in the active ui array that has the smallest layer value
-    G.prototype.getActiveUi = function() {
+    getActiveUi() {
         var smallestElement = null;
         for (var i=0; i<this.activeUiElements.length; ++i) {
             var element = this.activeUiElements[i];
@@ -103,13 +103,11 @@ var Game = (function() {
             }
         }
         return smallestElement;
-    };
+    }
+}
 
-    return G;
-})();
-
-var GameAssets = (function() {
-    function A() {
+class GameAssets {
+    constructor() {
         this.loader = LODE.createLoader();
         this.ship = this.loader.loadImage('assets/ship.png');
         this.font = this.loader.loadImage('assets/font.png');
@@ -117,17 +115,17 @@ var GameAssets = (function() {
         this.personIcon= this.loader.loadImage('assets/person-icon.png');
         this.moneyIcon= this.loader.loadImage('assets/money-icon.png');
         this.researchIcon= this.loader.loadImage('assets/research-icon.png');
-    };
-    A.prototype.load = function(onAssetsLoaded) {
+    }
+
+    load(onAssetsLoaded) {
         this.loader.load({
             onLoadComplete: onAssetsLoaded
         });
-    };
-    return A;
-})();
+    }
+}
 
-var UiElement = (function() {
-    function U(game, x, y, width, height, opt) {
+class UiElement {
+    constructor(game, x, y, width, height, opt) {
         this.game = game;
         this.uiActive = false;
 
@@ -147,7 +145,7 @@ var UiElement = (function() {
     }
 
     // Set position as ratio
-    U.prototype.setPos = function(x, y) {
+    setPos(x, y) {
         var pos = this.game.renderer.ratioToScreenCoord(x, y);
         if (this.opt.halign === 'center') {
             this.x = pos.x - this.width/2;
@@ -167,64 +165,62 @@ var UiElement = (function() {
 
         this.ratioX = x;
         this.ratioY = y;
-    };
+    }
 
-    U.prototype.getRight = function() {
+    getRight() {
         return this.ratioX + this.ratioW;
-    };
+    }
 
-    U.prototype.getBottom = function() {
+    getBottom() {
         return this.ratioY + this.ratioH;
-    };
+    }
 
     // Set dimensions as ratio
-    U.prototype.setDimensions = function(width, height) {
+    setDimensions(width, height) {
         var dimensions = this.game.renderer.ratioToScreenCoord(width, height);
         this.width = dimensions.x;
         this.height = dimensions.y;
         this.ratioW = width;
         this.ratioH = height;
-    };
+    }
 
-    U.prototype.activateUi = function() {
+    activateUi() {
         if (this.uiActive === false) {
             this.game.addActiveUi(this);
             this.uiActive = true;
         }
-    };
+    }
 
-    U.prototype.deactivateUi = function() {
+    deactivateUi() {
         if (this.uiActive === true) {
             this.game.removeActiveUi(this);
             this.uiActive = false;
         }
-    };
+    }
 
-    U.prototype.isMouseHovering = function() {
+    isMouseHovering() {
         return this.game.input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
-    };
+    }
+}
 
-    return U;
-})();
-
-var UiGroup = (function() {
-    function U() {
+class UiGroup {
+    constructor() {
         this.elements = [];
         this.active = true;
     }
 
-    U.prototype.setActive = function(active) {
+    setActive(active) {
         this.active = active;
-    };
+    }
 
     // Adds a list of elements to the group
-    U.prototype.addElements = function() {
+    addElements() {
         for (var i=0; i<arguments.length; ++i) {
             this.elements.push(arguments[i]);
         }
-    };
+    }
 
-    U.prototype.update = function() {
+    update() {
         if (this.active) {
             for (var i=0; i<this.elements.length; ++i) {
                 if (this.elements[i].onUpdate) this.elements[i].onUpdate();
@@ -234,22 +230,20 @@ var UiGroup = (function() {
                 this.elements[i].deactivateUi();
             }
         }
-    };
+    }
 
-    U.prototype.render = function() {
+    render() {
         if (this.active) {
             for (var i=0; i<this.elements.length; ++i) {
                 this.elements[i].onRender();
             }
         }
-    };
+    }
+}
 
-    return U;
-})();
-
-var UiImage = (function() {
-    function I(game, img, x, y, opt) {
-        UiElement.apply(this, [game, x, y, 0, 0, opt]);
+class UiImage extends UiElement {
+    constructor(game, img, x, y, opt) {
+        super(game, x, y, 0, 0, opt);
         this.img = img;
 
         var pDimension = this.game.renderer.pixelCoordToScreen(this.img.width, this.img.height);
@@ -257,23 +251,19 @@ var UiImage = (function() {
         this.setDimensions(ratioDimension.x, ratioDimension.y);
         this.setPos(this.ratioX, this.ratioY);
     }
-    I.prototype = Object.create(UiElement.prototype);
 
-    I.prototype.onRender = function() {
+    onRender() {
         this.game.renderer.drawImage(this.img, this.x, this.y);
-    };
+    }
+}
 
-    return I;
-})();
-
-var UiText = (function() {
-    function T(game, x, y, text, opt) {
-        UiElement.apply(this, [game, x, y, 0, 0, opt]);
+class UiText extends UiElement {
+    constructor(game, x, y, text, opt) {
+        super(game, x, y, 0, 0, opt);
         this.setText(text);
     }
-    T.prototype = Object.create(UiElement.prototype);
 
-    T.prototype.setText = function(text) {
+    setText(text) {
         this.text = this.game.fontRenderer.createStaticString(text);
 
         var pDimension = this.game.renderer.pixelCoordToScreen(this.text.width, this.text.height);
@@ -281,40 +271,36 @@ var UiText = (function() {
         this.setDimensions(ratioDimension.x, ratioDimension.y);
 
         this.setPos(this.ratioX, this.ratioY);
-    };
-
-    T.prototype.onRender = function() {
-        this.game.renderer.drawImage(this.text, this.x, this.y);
-    };
-
-    return T;
-})();
-
-var Panel = (function() {
-    function P(game, x, y, width, height, opt) {
-        UiElement.apply(this, arguments);
     }
-    P.prototype = Object.create(UiElement.prototype);
 
-    P.prototype.onUpdate = function() {
+    onRender() {
+        this.game.renderer.drawImage(this.text, this.x, this.y);
+    }
+}
+
+class Panel extends UiElement {
+    constructor(game, x, y, width, height, opt) {
+        super(game, x, y, width, height, opt);
+    }
+
+    onUpdate() {
         if (this.isMouseHovering()) {
             this.activateUi();
         } else {
             this.deactivateUi();
         }
-    };
+    }
 
-    P.prototype.onRender = function() {
+    onRender() {
         var renderer = this.game.renderer;
         renderer.gc.fillStyle = 'rgba(50, 100, 150, 0.85)';
         renderer.gc.fillRect(this.x, this.y, this.width, this.height);
-    };
-    return P;
-})();
+    }
+}
 
-var Button = (function() {
-    function B(game, x, y, width, height, opt) {
-        UiElement.apply(this, arguments);
+class Button extends UiElement {
+    constructor(game, x, y, width, height, opt) {
+        super(game, x, y, width, height, opt);
 
         this.status = 'up';
 
@@ -322,9 +308,8 @@ var Button = (function() {
             this.textCanvas = this.game.fontRenderer.createStaticString(opt.text, {baseline:'bottom'});
         }
     }
-    B.prototype = Object.create(UiElement.prototype);
 
-    B.prototype.onUpdate = function() {
+    onUpdate() {
         var input = this.game.input;
         var hovering = this.isMouseHovering();
         if (hovering) {
@@ -354,10 +339,10 @@ var Button = (function() {
 
             this.handleMouseRelease();
         }
-    };
+    }
 
     // Handles the actions that occur when you release the mouse button.
-    B.prototype.handleMouseRelease = function() {
+    handleMouseRelease() {
         var input = this.game.input;
         if (input.mouse.isReleased(input.MOUSE_LEFT)) {
             var isHovering = input.mouse.isColliding(this.x, this.y, this.x+this.width, this.y+this.height);
@@ -368,9 +353,9 @@ var Button = (function() {
             }
             this.status = isHovering ? 'hover' : 'up';
         }
-    };
+    }
 
-    B.prototype.onRender = function() {
+    onRender() {
         var renderer = this.game.renderer;
         switch(this.status) {
             case 'up':
@@ -390,38 +375,33 @@ var Button = (function() {
             var textDimension = renderer.pixelCoordToScreen(this.textCanvas.width, this.textCanvas.height);
             renderer.drawImage(this.textCanvas, this.x + this.width/2 - textDimension.x/2, this.y + this.height/2 - textDimension.y/2);
         }
-    };
+    }
+}
 
-    return B;
-})();
-
-var World = (function() {
-    function W(game) {
+class World {
+    constructor(game) {
         this.game = game;
     }
 
-    W.prototype.onInit = function() {
+    onInit() {
         if (this.init) this.init();
-    };
-
-    W.prototype.onUpdate = function() {
-        if (this.update) this.update();
-    };
-
-    W.prototype.onRender = function() {
-        if (this.render) this.render();
-    };
-
-    return W;
-})();
-
-var TestWorld = (function() {
-    function T(game) {
-        World.call(this, game);
     }
-    T.prototype = Object.create(World.prototype);
 
-    T.prototype.init = function() {
+    onUpdate() {
+        if (this.update) this.update();
+    }
+
+    onRender() {
+        if (this.render) this.render();
+    }
+}
+
+class TestWorld extends World {
+    constructor(game) {
+        super(game);
+    }
+
+    init() {
         this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
 
         this.buttonUi = new UiGroup();
@@ -474,9 +454,9 @@ var TestWorld = (function() {
         this.camY = 0;
         this.mouseClickPos = null;
         this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
-    };
+    }
 
-    T.prototype.createDevelopmentUi = function() {
+    createDevelopmentUi() {
         this.devUi = new UiGroup();
 
         var titleText = new UiText(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
@@ -506,9 +486,9 @@ var TestWorld = (function() {
 
         this.devUi.addElements(this.panel, titleText, this.closeButton, devModuleText, devModuleCost, moneyIcon, popIcon, devModulePopCost, purchaseButton);
         this.devUi.active = false;
-    };
+    }
 
-    T.prototype.update = function() {
+    update() {
         this.buttonUi.update();
         this.devUi.update();
         this.statUi.update();
@@ -539,9 +519,9 @@ var TestWorld = (function() {
         if (this.game.input.mouse.isReleased(this.game.input.MOUSE_LEFT)) {
             this.mouseClickPos = null;
         }
-    };
+    }
 
-    T.prototype.render = function() {
+    render() {
         var renderer = this.game.renderer;
         renderer.gc.fillStyle = '#1B3A50';
         renderer.fillRect(0,0,renderer.RESOLUTION,renderer.RESOLUTION);
@@ -563,12 +543,10 @@ var TestWorld = (function() {
 
         this.statUi.render();
         this.devUi.render();
-    };
+    }
 
-    T.prototype.onMouseMove = function(e) {
+    onMouseMove(e)  {
         this.shipX = e.layerX;
         this.shipY = e.layerY;
-    };
-
-    return T;
-})();
+    }
+}
