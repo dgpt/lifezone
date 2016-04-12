@@ -197,6 +197,10 @@ class Module {
         this.img = img;
         this.button = new ModuleButton(this.game, {valign:'top', halign:'left'});
         this.button.setImage(img);
+        this.button.onClick = () => {
+            this.mainWorld.activeModule = this;
+            if (this.onClick) this.onClick();
+        }
     }
 
     setPos(x, y) {
@@ -227,24 +231,31 @@ class Module {
 
     render() {
         this.button.onRender();
+        if (this.mainWorld.addingModule) {
+            this.game.renderer.gc.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            this.game.renderer.gc.fillRect(this.button.x, this.button.y, this.button.width, this.button.height);
+        } else if (this.mainWorld.activeModule === this) {
+            this.game.renderer.gc.fillStyle = 'rgba(127, 127, 0, 0.5)';
+            this.game.renderer.drawOutline(this.button.x, this.button.y, this.button.width, this.button.height);
+        }
     }
 }
 
 class DevelopModule extends Module {
     constructor(game, mainWorld, x, y) {
         super(game, mainWorld, x, y, game.assets.img.factory);
-        this.button.onClick = () => {
-            this.mainWorld.actionButton.setIcon(this.game.assets.img.moneyIcon);
-        }
+    }
+    onClick() {
+        this.mainWorld.actionButton.setIcon(this.game.assets.img.moneyIcon);
     }
 }
 
 class ResearchModule extends Module {
     constructor(game, mainWorld, x, y) {
         super(game, mainWorld, x, y, game.assets.img.lab);
-        this.button.onClick = () => {
-            this.mainWorld.actionButton.setIcon(this.game.assets.img.researchIcon);
-        }
+    }
+    onClick() {
+        this.mainWorld.actionButton.setIcon(this.game.assets.img.researchIcon);
     }
 }
 
@@ -314,6 +325,7 @@ class MainWorld extends World {
         this.newModule = null;
         this.newModuleX = 0;
         this.newModuleY = 0;
+        this.activeModule = null;
 
         this.onCameraChange();
     }

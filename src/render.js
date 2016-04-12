@@ -47,6 +47,15 @@ var PixelRenderer = (function() {
         this.gc.restore();
     };
 
+    R.prototype.drawOutline = function(x, y, w, h) {
+        // Horizontal lines
+        this.gc.fillRect(x, y, w, this.pixelSize);
+        this.gc.fillRect(x, y + h - this.pixelSize, w, this.pixelSize);
+        // Vertical lines
+        this.gc.fillRect(x, y, this.pixelSize, h);
+        this.gc.fillRect(x + w - this.pixelSize, y, this.pixelSize, h);
+    };
+
     // Converts a screen position into pixel indices
     R.prototype.screenCoordToPixel = function(x, y) {
         x = Math.round(x / this.pixelSize);
