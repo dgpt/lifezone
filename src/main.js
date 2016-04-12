@@ -175,13 +175,22 @@ class World {
 }
 
 class Module {
-    constructor(game, mainWorld, x, y) {
+    constructor(game, mainWorld, x, y, img) {
         this.game = game;
         this.mainWorld = mainWorld;
         // Pixel coordinate
         this.x = x;
         this.y = y;
+        this.img = img;
         this.button = new ModuleButton(this.game, {valign:'top', halign:'left'});
+        this.button.setImage(img);
+    }
+
+    setPos(x, y) {
+        var pos = this.game.renderer.pixelCoordToRatio(x, y);
+        this.button.setPos(pos.x,pos.y);
+        this.x = x;
+        this.y = y;
     }
 
     onCameraChange(camX, camY) {
@@ -200,8 +209,7 @@ class Module {
 
 class DevelopModule extends Module {
     constructor(game, mainWorld, x, y) {
-        super(game, mainWorld, x, y);
-        this.button.setImage(this.game.assets.img.factory);
+        super(game, mainWorld, x, y, game.assets.img.factory);
         this.button.onClick = () => {
             this.mainWorld.actionButton.setIcon(this.game.assets.img.moneyIcon);
         }
@@ -210,8 +218,7 @@ class DevelopModule extends Module {
 
 class ResearchModule extends Module {
     constructor(game, mainWorld, x, y) {
-        super(game, mainWorld, x, y);
-        this.button.setImage(this.game.assets.img.lab);
+        super(game, mainWorld, x, y, game.assets.img.lab);
         this.button.onClick = () => {
             this.mainWorld.actionButton.setIcon(this.game.assets.img.researchIcon);
         }
@@ -280,6 +287,11 @@ class MainWorld extends World {
                         new ResearchModule(this.game, this, 32, 5),
                         new ResearchModule(this.game, this, 5, 20)];
 
+        this.addingModule = false;
+        this.newModule = null;
+        this.newModuleX = 0;
+        this.newModuleY = 0;
+
         this.onCameraChange();
     }
 
@@ -322,6 +334,25 @@ class MainWorld extends World {
 
         for (var i=0; i<this.modules.length; ++i) {
             this.modules[i].update();
+        }
+
+        if (this.game.input.key.isPressed(this.game.input.ENTER)) {
+            this.addingModule = true;
+            this.newModule = new DevelopModule(this.game, this, 0, 0);
+        }
+
+        if (this.addingModule === true) {
+            let dimension = this.game.renderer.pixelCoordToScreen(this.newModule.img.width, this.newModule.img.height);
+            this.newModuleX = this.game.input.mouse.getX() - dimension.x/2;
+            this.newModuleY = this.game.input.mouse.getY() - dimension.y/2;
+            if (this.game.input.mouse.isPressed(this.game.input.MOUSE_LEFT)) {
+                let pos = this.game.renderer.screenCoordToPixel(this.newModuleX, this.newModuleY);
+                this.newModule.setPos(pos.x + this.camX, pos.y + this.camY);
+                this.newModule.onCameraChange(this.camX, this.camY);
+                this.modules.push(this.newModule);
+                this.addingModule = false;
+                this.newModule = null;
+            }
         }
 
         if (this.game.getActiveUi() === null) {
@@ -372,6 +403,10 @@ class MainWorld extends World {
         var selector = this.game.assets.img.pixelSelector;
         var selectorOffset = renderer.pixelCoordToScreen(selector.width/2, selector.height/2);
         renderer.drawImage(selector, this.game.input.mouse.getX() - selectorOffset.x, this.game.input.mouse.getY() - selectorOffset.y);
+
+        if (this.addingModule === true) {
+            renderer.drawImage(this.newModule.img, this.newModuleX, this.newModuleY);
+        }
 
         this.statUi.render();
         this.devUi.render();
