@@ -134,10 +134,14 @@ class GameAssets {
 }
 
 class ModuleButton extends ui.Clickable {
-    constructor(game, x, y, width, height, img, opt) {
-        var ratioDimension = game.renderer.pixelCoordToRatio(img.width, img.height);
-        super(game, x, y, ratioDimension.x, ratioDimension.y, opt);
+    constructor(game, opt) {
+        super(game, 0, 0, 0, 0, opt);
+    }
+
+    setImage(img) {
         this.img = img;
+        var ratioDimension = this.game.renderer.pixelCoordToRatio(img.width, img.height);
+        this.setDimensions(ratioDimension.x, ratioDimension.y);
     }
 
     onUpdate() {
@@ -167,6 +171,50 @@ class World {
 
     onRender() {
         if (this.render) this.render();
+    }
+}
+
+class Module {
+    constructor(game, mainWorld, x, y) {
+        this.game = game;
+        this.mainWorld = mainWorld;
+        // Pixel coordinate
+        this.x = x;
+        this.y = y;
+        this.button = new ModuleButton(this.game, {valign:'top', halign:'left'});
+    }
+
+    onCameraChange(camX, camY) {
+        var pos = this.game.renderer.pixelCoordToRatio(this.x-camX, this.y-camY);
+        this.button.setPos(pos.x,pos.y);
+    }
+
+    update() {
+        this.button.onUpdate();
+    }
+
+    render() {
+        this.button.onRender();
+    }
+}
+
+class DevelopModule extends Module {
+    constructor(game, mainWorld, x, y) {
+        super(game, mainWorld, x, y);
+        this.button.setImage(this.game.assets.img.factory);
+        this.button.onClick = () => {
+            this.mainWorld.actionButton.setIcon(this.game.assets.img.moneyIcon);
+        }
+    }
+}
+
+class ResearchModule extends Module {
+    constructor(game, mainWorld, x, y) {
+        super(game, mainWorld, x, y);
+        this.button.setImage(this.game.assets.img.lab);
+        this.button.onClick = () => {
+            this.mainWorld.actionButton.setIcon(this.game.assets.img.researchIcon);
+        }
     }
 }
 
@@ -228,21 +276,9 @@ class MainWorld extends World {
         this.mouseClickPos = null;
         this.cameraBounds = {x1: -20, y1: -20, x2: 64, y2: 32};
 
-        this.moduleButtonsUi = new ui.Group();
-        var img = this.game.assets.img;
-        this.devModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.factory, {valign:'top', halign:'left'});
-        this.devModule.onClick = () => {
-            this.actionButton.setIcon(this.game.assets.img.moneyIcon);
-        }
-        this.manageModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.mine, {valign:'top', halign:'left'});
-        this.manageModule.onClick = () => {
-            this.actionButton.setIcon(this.game.assets.img.personIcon);
-        }
-        this.researchModule = new ModuleButton(this.game, 0, 0, 0.5, 0.25, img.lab,{valign:'top', halign:'left'});
-        this.researchModule.onClick = () => {
-            this.actionButton.setIcon(this.game.assets.img.researchIcon);
-        }
-        this.moduleButtonsUi.addElements(this.devModule, this.manageModule, this.researchModule);
+        this.modules = [new DevelopModule(this.game, this, 5, 5),
+                        new ResearchModule(this.game, this, 32, 5),
+                        new ResearchModule(this.game, this, 5, 20)];
 
         this.onCameraChange();
     }
@@ -283,7 +319,10 @@ class MainWorld extends World {
         this.buttonUi.update();
         this.devUi.update();
         this.statUi.update();
-        this.moduleButtonsUi.update();
+
+        for (var i=0; i<this.modules.length; ++i) {
+            this.modules[i].update();
+        }
 
         if (this.game.getActiveUi() === null) {
             var input = this.game.input;
@@ -315,14 +354,9 @@ class MainWorld extends World {
     }
 
     onCameraChange() {
-        var pos = this.game.renderer.pixelCoordToRatio(5-this.camX, 5-this.camY);
-        this.devModule.setPos(pos.x,pos.y);
-
-        pos = this.game.renderer.pixelCoordToRatio(5-this.camX, 22-this.camY);
-        this.manageModule.setPos(pos.x,pos.y);
-
-        pos = this.game.renderer.pixelCoordToRatio(38-this.camX, 5-this.camY);
-        this.researchModule.setPos(pos.x,pos.y);
+        for (var i=0; i<this.modules.length; ++i) {
+            this.modules[i].onCameraChange(this.camX, this.camY);
+        }
     }
 
     render() {
@@ -330,7 +364,9 @@ class MainWorld extends World {
         renderer.gc.fillStyle = '#1B3A50';
         renderer.fillRect(0,0,renderer.RESOLUTION,renderer.RESOLUTION);
 
-        this.moduleButtonsUi.render();
+        for (var i=0; i<this.modules.length; ++i) {
+            this.modules[i].render();
+        }
         this.buttonUi.render();
 
         var selector = this.game.assets.img.pixelSelector;
