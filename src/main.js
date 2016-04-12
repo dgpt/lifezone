@@ -105,6 +105,19 @@ class Game {
         }
         return smallestElement;
     }
+
+    // Returns if two rects are overlapping
+    // rect = {x, y, w, h}
+    isRectColliding(rect1, rect2) {
+        rect1.x2 = rect1.x + rect1.w;
+        rect1.y2 = rect1.y + rect1.h;
+        rect2.x2 = rect2.x + rect2.w;
+        rect2.y2 = rect2.y + rect2.h;
+        return (rect1.x < rect2.x2
+        && rect1.x2 > rect2.x
+        && rect1.y < rect2.y2
+        && rect1.y2 > rect2.y);
+    }
 }
 
 class GameAssets {
@@ -196,6 +209,16 @@ class Module {
     onCameraChange(camX, camY) {
         var pos = this.game.renderer.pixelCoordToRatio(this.x-camX, this.y-camY);
         this.button.setPos(pos.x,pos.y);
+    }
+
+    isColliding(x, y, w, h) {
+        var buttonPos = this.game.renderer.screenCoordToPixel(this.button.x, this.button.y);
+        var buttonDimension = this.game.renderer.screenCoordToPixel(this.button.width, this.button.height);
+        return this.game.isRectColliding({
+            x:x, y:y, w:w, h:h
+        }, {
+            x: buttonPos.x, y: buttonPos.y, w: buttonDimension.x, h: buttonDimension.y
+        });
     }
 
     update() {
@@ -346,12 +369,22 @@ class MainWorld extends World {
             this.newModuleX = this.game.input.mouse.getX() - dimension.x/2;
             this.newModuleY = this.game.input.mouse.getY() - dimension.y/2;
             if (this.game.input.mouse.isPressed(this.game.input.MOUSE_LEFT)) {
-                let pos = this.game.renderer.screenCoordToPixel(this.newModuleX, this.newModuleY);
-                this.newModule.setPos(pos.x + this.camX, pos.y + this.camY);
-                this.newModule.onCameraChange(this.camX, this.camY);
-                this.modules.push(this.newModule);
-                this.addingModule = false;
-                this.newModule = null;
+                let canPlace = true;
+                for (let module of this.modules) {
+                    let pos = this.game.renderer.screenCoordToPixel(this.newModuleX, this.newModuleY);
+                    if (module.isColliding(pos.x, pos.y, this.newModule.img.width, this.newModule.img.height)) {
+                        canPlace = false;
+                        break;
+                    }
+                }
+                if (canPlace) {
+                    let pos = this.game.renderer.screenCoordToPixel(this.newModuleX, this.newModuleY);
+                    this.newModule.setPos(pos.x + this.camX, pos.y + this.camY);
+                    this.newModule.onCameraChange(this.camX, this.camY);
+                    this.modules.push(this.newModule);
+                    this.addingModule = false;
+                    this.newModule = null;
+                }
             }
         }
 
