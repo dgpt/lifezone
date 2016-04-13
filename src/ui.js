@@ -16,6 +16,7 @@ export class UiElement {
         this.ratioY = y;
         this.ratioW = width;
         this.ratioH = height;
+        this.dead = false;
     }
 
     // Set position as ratio
@@ -59,6 +60,7 @@ export class UiElement {
     }
 
     activateUi() {
+        if (this.dead) return;
         if (this.uiActive === false) {
             this.game.addActiveUi(this);
             this.uiActive = true;
@@ -69,7 +71,30 @@ export class UiElement {
         if (this.uiActive === true) {
             this.game.removeActiveUi(this);
             this.uiActive = false;
+            if (this.onDeactivate) this.onDeactivate();
         }
+    }
+
+    update() {
+        if (!this.dead) {
+            if (this.onUpdate) this.onUpdate();
+        }
+    }
+
+    render() {
+        if (!this.dead) {
+            if (this.onRender) this.onRender();
+        }
+    }
+
+    // Disables all updating and rendering
+    kill() {
+        this.deactivateUi();
+        this.dead = true;
+    }
+    revive() {
+        this.dead = false;
+        if (this.onRevive) this.onRevive();
     }
 
     isMouseHovering() {
@@ -91,6 +116,12 @@ export class Group {
     addElements() {
         for (var i=0; i<arguments.length; ++i) {
             this.elements.push(arguments[i]);
+        }
+    }
+
+    kill() {
+        for (var i=0; i<this.elements.length; ++i) {
+            this.elements[i].kill();
         }
     }
 
@@ -126,7 +157,7 @@ export class UiImage extends UiElement {
         this.setPos(this.ratioX, this.ratioY);
     }
 
-    render() {
+    onRender() {
         this.game.renderer.drawImage(this.img, this.x, this.y);
     }
 }
@@ -147,7 +178,7 @@ export class Text extends UiElement {
         this.setPos(this.ratioX, this.ratioY);
     }
 
-    render() {
+    onRender() {
         this.game.renderer.drawImage(this.text, this.x, this.y);
     }
 }
@@ -157,7 +188,7 @@ export class Panel extends UiElement {
         super(game, x, y, width, height, opt);
     }
 
-    update() {
+    onUpdate() {
         if (this.isMouseHovering()) {
             this.activateUi();
         } else {
@@ -165,7 +196,7 @@ export class Panel extends UiElement {
         }
     }
 
-    render() {
+    onRender() {
         var renderer = this.game.renderer;
         renderer.gc.fillStyle = 'rgba(50, 100, 150, 0.85)';
         renderer.gc.fillRect(this.x, this.y, this.width, this.height);
@@ -186,7 +217,7 @@ export class Clickable extends UiElement {
         }
     }
 
-    update() {
+    onUpdate() {
         this.handleButtonInput();
     }
 
@@ -243,7 +274,7 @@ export class Button extends Clickable {
         }
     }
 
-    update() {
+    onUpdate() {
         if (this.isMouseHovering()) {
             this.activateUi();
         }
@@ -256,6 +287,10 @@ export class Button extends Clickable {
         if (status === 'up') {
             this.deactivateUi();
         }
+    }
+
+    onRevive() {
+        this.status = 'up';
     }
 
     setText(text) {
@@ -272,7 +307,7 @@ export class Button extends Clickable {
         if (img) this.setText('');
     }
 
-    render() {
+    onRender() {
         var renderer = this.game.renderer;
         switch(this.status) {
             case 'up':

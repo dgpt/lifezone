@@ -251,6 +251,9 @@ class DevelopModule extends Module {
     onClick() {
         this.mainWorld.actionButton.setIcon(this.game.assets.img.moneyIcon);
     }
+    openMenu() {
+        return new DevelopModuleMenu(this.game);
+    }
 }
 
 class ResearchModule extends Module {
@@ -259,6 +262,55 @@ class ResearchModule extends Module {
     }
     onClick() {
         this.mainWorld.actionButton.setIcon(this.game.assets.img.researchIcon);
+    }
+    openMenu() {
+        return new ResearchModuleMenu(this.game);
+    }
+}
+
+class ModuleMenu {
+    constructor(game) {
+        this.game = game;
+        this.ui = new ui.Group();
+        this.mainPanel = new ui.Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
+        this.ui.addElements(this.mainPanel);
+    }
+    update() {
+        this.ui.update();
+    }
+    render() {
+        this.ui.render();
+    }
+    // Call this before disposing of the menu
+    kill() {
+        this.ui.kill();
+    }
+}
+class DevelopModuleMenu extends ModuleMenu {
+    constructor(game) {
+        super(game);
+        var titleText = new ui.Text(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
+        var devModuleText = new ui.Text(this.game, 0, 0.25, 'Dev Module', {halign:'left', valign:'top'});
+        var moneyIcon = new ui.UiImage(this.game, this.game.assets.img.moneyIcon, 0, devModuleText.getBottom(), {halign:'left'});
+        var devModuleCost = new ui.Text(this.game, moneyIcon.getRight() + 0.01, devModuleText.getBottom() + 0.03, '150', {halign:'left'});
+        var popIcon = new ui.UiImage(this.game, this.game.assets.img.personIcon, devModuleCost.getRight() + 0.05, devModuleText.getBottom(), {halign:'left'});
+        var devModulePopCost = new ui.Text(this.game, popIcon.getRight() + 0.02, devModuleText.getBottom() + 0.03, '1', {halign:'left'});
+
+        var purchaseButton = new ui.Button(this.game, 0.98, devModuleText.getBottom(), 0.25, 0.15, {
+            text: 'Buy',
+            halign: 'right',
+            valign: 'bottom',
+            layer: -2
+        });
+
+        this.ui.addElements(titleText, devModuleText, devModuleCost, moneyIcon, popIcon, devModulePopCost, purchaseButton);
+    }
+}
+class ResearchModuleMenu extends ModuleMenu {
+    constructor(game) {
+        super(game);
+        var titleText = new ui.Text(this.game, 0, 0, 'Research', {halign:'left', valign:'top'});
+        this.ui.addElements(titleText);
     }
 }
 
@@ -274,9 +326,8 @@ class MainWorld extends World {
             halign: 'right'
         });
         this.actionButton.onClick = (function() {
-            this.game.population++;
-            this.devUi.setActive(true);
-            this.popText.setText(this.game.population.toString() + '/' + this.game.populationMax.toString());
+            this.activeModuleMenu = this.activeModule.openMenu();
+            this.closeModuleMenuButton.revive();
         }).bind(this);
 
         this.endTurnButton = new ui.Button(this.game, 0, 0.875, 0.5, 0.125, {
@@ -311,8 +362,6 @@ class MainWorld extends World {
         this.statUi.setActive(false);
         this.statUi.addElements(this.popText, this.personIcon, this.moneyText, this.moneyIcon, this.researchText, this.researchIcon);
 
-        this.createDevelopmentUi();
-
         this.camX = 0;
         this.camY = 0;
         this.mouseClickPos = null;
@@ -327,45 +376,29 @@ class MainWorld extends World {
         this.newModuleX = 0;
         this.newModuleY = 0;
         this.activeModule = null;
+        this.activeModuleMenu = null;
 
-        this.onCameraChange();
-    }
-
-    createDevelopmentUi() {
-        this.devUi = new ui.Group();
-
-        var titleText = new ui.Text(this.game, 0, 0, 'Dev Ops', {halign:'left', valign:'top'});
-        var devModuleText = new ui.Text(this.game, 0, 0.25, 'Dev Module', {halign:'left', valign:'top'});
-        var moneyIcon = new ui.UiImage(this.game, this.game.assets.img.moneyIcon, 0, devModuleText.getBottom(), {halign:'left'});
-        var devModuleCost = new ui.Text(this.game, moneyIcon.getRight() + 0.01, devModuleText.getBottom() + 0.03, '150', {halign:'left'});
-        var popIcon = new ui.UiImage(this.game, this.game.assets.img.personIcon, devModuleCost.getRight() + 0.05, devModuleText.getBottom(), {halign:'left'});
-        var devModulePopCost = new ui.Text(this.game, popIcon.getRight() + 0.02, devModuleText.getBottom() + 0.03, '1', {halign:'left'});
-
-        var purchaseButton = new ui.Button(this.game, 0.98, devModuleText.getBottom(), 0.25, 0.15, {
-            text: 'Buy',
-            halign: 'right',
-            valign: 'bottom',
-            layer: -2
-        });
-
-        this.closeButton = new ui.Button(this.game, 1, 0, 0.35, 0.125, {
+        this.closeModuleMenuButton = new ui.Button(this.game, 1, 0, 0.35, 0.125, {
             text: 'Close',
             valign: 'top',
             halign: 'right',
             layer: -2
         });
-        this.closeButton.onClick = (function() {
-            this.devUi.setActive(false);
-        }).bind(this);
-        this.panel = new ui.Panel(this.game, 0,0,1,1, {layer:-1, valign: 'top', halign: 'left'});
+        this.closeModuleMenuButton.onClick = () => {
+            this.activeModuleMenu.kill();
+            this.activeModuleMenu = null;
+            this.closeModuleMenuButton.kill();
+        };
 
-        this.devUi.addElements(this.panel, titleText, this.closeButton, devModuleText, devModuleCost, moneyIcon, popIcon, devModulePopCost, purchaseButton);
-        this.devUi.active = false;
+        this.onCameraChange();
     }
 
     update() {
         this.buttonUi.update();
-        this.devUi.update();
+        if (this.activeModuleMenu !== null) {
+            this.activeModuleMenu.update();
+            this.closeModuleMenuButton.update();
+        }
         this.statUi.update();
 
         for (let i=0; i<this.modules.length; ++i) {
@@ -455,6 +488,9 @@ class MainWorld extends World {
         }
 
         this.statUi.render();
-        this.devUi.render();
+        if (this.activeModuleMenu !== null) {
+            this.activeModuleMenu.render();
+            this.closeModuleMenuButton.render();
+        }
     }
 }
