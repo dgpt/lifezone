@@ -1,4 +1,4 @@
-class UiElement {
+export class UiElement {
     constructor(game, x, y, width, height, opt) {
         this.game = game;
         this.uiActive = false;
@@ -77,7 +77,7 @@ class UiElement {
     }
 }
 
-class Group {
+export class Group {
     constructor() {
         this.elements = [];
         this.active = true;
@@ -97,7 +97,7 @@ class Group {
     update() {
         if (this.active) {
             for (var i=0; i<this.elements.length; ++i) {
-                if (this.elements[i].onUpdate) this.elements[i].onUpdate();
+                if (this.elements[i].update) this.elements[i].update();
             }
         } else {
             for (var i=0; i<this.elements.length; ++i) {
@@ -109,13 +109,13 @@ class Group {
     render() {
         if (this.active) {
             for (var i=0; i<this.elements.length; ++i) {
-                this.elements[i].onRender();
+                this.elements[i].render();
             }
         }
     }
 }
 
-class UiImage extends UiElement {
+export class UiImage extends UiElement {
     constructor(game, img, x, y, opt) {
         super(game, x, y, 0, 0, opt);
         this.img = img;
@@ -126,12 +126,12 @@ class UiImage extends UiElement {
         this.setPos(this.ratioX, this.ratioY);
     }
 
-    onRender() {
+    render() {
         this.game.renderer.drawImage(this.img, this.x, this.y);
     }
 }
 
-class Text extends UiElement {
+export class Text extends UiElement {
     constructor(game, x, y, text, opt) {
         super(game, x, y, 0, 0, opt);
         this.setText(text);
@@ -147,17 +147,17 @@ class Text extends UiElement {
         this.setPos(this.ratioX, this.ratioY);
     }
 
-    onRender() {
+    render() {
         this.game.renderer.drawImage(this.text, this.x, this.y);
     }
 }
 
-class Panel extends UiElement {
+export class Panel extends UiElement {
     constructor(game, x, y, width, height, opt) {
         super(game, x, y, width, height, opt);
     }
 
-    onUpdate() {
+    update() {
         if (this.isMouseHovering()) {
             this.activateUi();
         } else {
@@ -165,14 +165,14 @@ class Panel extends UiElement {
         }
     }
 
-    onRender() {
+    render() {
         var renderer = this.game.renderer;
         renderer.gc.fillStyle = 'rgba(50, 100, 150, 0.85)';
         renderer.gc.fillRect(this.x, this.y, this.width, this.height);
     }
 }
 
-class Clickable extends UiElement {
+export class Clickable extends UiElement {
     constructor(game, x, y, width, height, opt) {
         super(game, x, y, width, height, opt);
 
@@ -186,7 +186,7 @@ class Clickable extends UiElement {
         }
     }
 
-    onUpdate() {
+    update() {
         this.handleButtonInput();
     }
 
@@ -230,7 +230,7 @@ class Clickable extends UiElement {
     }
 }
 
-class Button extends Clickable {
+export class Button extends Clickable {
     constructor(game, x, y, width, height, opt) {
         super(game, x, y, width, height, opt);
 
@@ -243,7 +243,7 @@ class Button extends Clickable {
         }
     }
 
-    onUpdate() {
+    update() {
         if (this.isMouseHovering()) {
             this.activateUi();
         }
@@ -272,7 +272,7 @@ class Button extends Clickable {
         if (img) this.setText('');
     }
 
-    onRender() {
+    render() {
         var renderer = this.game.renderer;
         switch(this.status) {
             case 'up':
@@ -298,13 +298,3 @@ class Button extends Clickable {
         }
     }
 }
-
-module.exports = {
-    UiElement: UiElement,
-    UiImage: UiImage,
-    Clickable: Clickable,
-    Group: Group,
-    Text: Text,
-    Panel: Panel,
-    Button: Button
-};

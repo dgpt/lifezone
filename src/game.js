@@ -1,5 +1,3 @@
-var ship, font, fontInfo, fontRenderer, stringCanvas, renderer, shipX, shipY;
-
 // Override default requestAnimationFrame for maximum compatibility.
 var requestAnimationFrame = window.requestAnimationFrame
                        || window.mozRequestAnimationFrame
@@ -7,10 +5,10 @@ var requestAnimationFrame = window.requestAnimationFrame
                        || window.msRequestAnimationFrame
                        || function(func) { setTimeout(func, 1000/60) };
 
-var time = require('./time.js');
-var input = require('./input.js');
-var render = require('./render.js');
-var ui = require('./ui.js');
+const time = require('./time.js');
+const input = require('./input.js');
+const render = require('./render.js');
+const ui = require('./ui.js');
 
 window.onBodyLoad = () => {
     var game = new Game();
@@ -55,10 +53,10 @@ class Game {
             this.world.onInit();
         }
 
-        this.onUpdate();
+        this.update();
     }
 
-    onUpdate() {
+    update() {
         if (this.world) {
             this.world.onUpdate();
         }
@@ -72,7 +70,7 @@ class Game {
         this.time.updateTime();
 
         var self = this;
-        requestAnimationFrame(function() { self.onUpdate() });
+        requestAnimationFrame(function() { self.update() });
     }
 
     setWorld(world) {
@@ -157,13 +155,13 @@ class ModuleButton extends ui.Clickable {
         this.setDimensions(ratioDimension.x, ratioDimension.y);
     }
 
-    onUpdate() {
+    update() {
         if (this.game.getActiveUi() === null) {
             this.handleButtonInput();
         }
     }
 
-    onRender() {
+    render() {
         var renderer = this.game.renderer;
         renderer.drawImage(this.img, this.x, this.y);
     }
@@ -226,11 +224,11 @@ class Module {
     }
 
     update() {
-        this.button.onUpdate();
+        this.button.update();
     }
 
     render() {
-        this.button.onRender();
+        this.button.render();
         if (this.mainWorld.addingModule) {
             this.game.renderer.gc.fillStyle = 'rgba(255, 0, 0, 0.5)';
             this.game.renderer.gc.fillRect(this.button.x, this.button.y, this.button.width, this.button.height);
@@ -265,8 +263,6 @@ class MainWorld extends World {
     }
 
     init() {
-        this.game.renderer.canvas.addEventListener('mousemove', this.onMouseMove.bind(this));
-
         this.buttonUi = new ui.Group();
         this.actionButton = new ui.Button(this.game, 1, 1.0, 0.5, 0.25, {
             valign: 'bottom',
@@ -367,7 +363,7 @@ class MainWorld extends World {
         this.devUi.update();
         this.statUi.update();
 
-        for (var i=0; i<this.modules.length; ++i) {
+        for (let i=0; i<this.modules.length; ++i) {
             this.modules[i].update();
         }
 
@@ -407,8 +403,8 @@ class MainWorld extends World {
             }
             if (this.mouseClickPos !== null) {
                 if (input.mouse.isMoving()) {
-                    var x = this.mouseClickPos.x - input.mouse.getX();
-                    var y = this.mouseClickPos.y - input.mouse.getY();
+                    let x = this.mouseClickPos.x - input.mouse.getX();
+                    let y = this.mouseClickPos.y - input.mouse.getY();
                     this.camX += Math.round(x/8);
                     this.camY += Math.round(y/8);
                     if (this.camX < this.cameraBounds.x1) this.camX = this.cameraBounds.x1;
@@ -430,7 +426,7 @@ class MainWorld extends World {
     }
 
     onCameraChange() {
-        for (var i=0; i<this.modules.length; ++i) {
+        for (let i=0; i<this.modules.length; ++i) {
             this.modules[i].onCameraChange(this.camX, this.camY);
         }
     }
@@ -455,10 +451,5 @@ class MainWorld extends World {
 
         this.statUi.render();
         this.devUi.render();
-    }
-
-    onMouseMove(e)  {
-        this.shipX = e.layerX;
-        this.shipY = e.layerY;
     }
 }
