@@ -9,6 +9,9 @@ const time = require('./time.js');
 const input = require('./input.js');
 const render = require('./render.js');
 const ui = require('./ui.js');
+const util = require('./util.js');
+
+import { Vec, ScreenVec, PixelVec, RatioVec } from './util.js';
 
 window.onBodyLoad = () => {
     var game = new Game();
@@ -46,6 +49,8 @@ class Game {
 
         this.renderer = new render.PixelRenderer();
         this.renderer.init(document.getElementById('gameCanvas'));
+
+        Vec.setPixelInfo(this.renderer.RESOLUTION, this.renderer.canvas.width, this.renderer.canvas.height);
 
         this.input.init(this.renderer.canvas);
 
