@@ -14,6 +14,14 @@ module.exports = function(grunt) {
                     src: ['*.js'],
                     dest: 'public/babel/'
                 }]
+            },
+            test: {
+                files: [{
+                    expand: true,
+                    cwd: 'src/',
+                    src: ['logic.js'],
+                    dest: 'public/babel/'
+                }]
             }
         },
 
@@ -24,6 +32,12 @@ module.exports = function(grunt) {
         watch: {
             files: ['src/*.js'],
             tasks: ['build']
+        },
+
+        shell: {
+            qunit: {
+                command: '"node_modules/.bin/qunit" -c public/babel/logic.js -t test/tests.js',
+            }
         }
     });
 
@@ -31,5 +45,6 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
 
     grunt.registerTask('build', ['babel', 'browserify']);
+    grunt.registerTask('test', ['babel:test', 'shell:qunit']);
     grunt.registerTask('default', 'watch');
 };
